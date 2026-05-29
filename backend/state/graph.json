@@ -344,19 +344,6 @@
       ]
     },
     {
-      "nodeId": "ticker_CRM",
-      "nodeType": "ticker",
-      "name": "Salesforce Inc.",
-      "aliases": [
-        "Salesforce"
-      ],
-      "queryTerms": [
-        "Salesforce",
-        "CRM",
-        "Salesforce.com"
-      ]
-    },
-    {
       "nodeId": "ticker_ORCL",
       "nodeType": "ticker",
       "name": "Oracle Corporation",
@@ -882,6 +869,148 @@
         "food service",
         "restaurant trends",
         "food and beverage industry"
+      ]
+    },
+    {
+      "nodeId": "ticker_CRM",
+      "nodeType": "ticker",
+      "name": "Salesforce Inc.",
+      "aliases": [
+        "Salesforce"
+      ],
+      "queryTerms": [
+        "CRM",
+        "Salesforce.com",
+        "Salesforce",
+        "customer relationship management"
+      ],
+      "ticker": "CRM"
+    },
+    {
+      "nodeId": "ticker_APP",
+      "nodeType": "ticker",
+      "name": "AppLovin Corporation",
+      "ticker": "APP",
+      "aliases": [
+        "AppLovin"
+      ],
+      "queryTerms": [
+        "AppLovin Corporation",
+        "APP",
+        "mobile marketing",
+        "advertising technology"
+      ]
+    },
+    {
+      "nodeId": "private_company_PLTR",
+      "nodeType": "private_company",
+      "name": "Palantir Technologies Inc.",
+      "ticker": "PLTR",
+      "aliases": [
+        "Palantir"
+      ],
+      "queryTerms": [
+        "Palantir Technologies",
+        "PLTR",
+        "data analytics"
+      ]
+    },
+    {
+      "nodeId": "private_company_ADBE",
+      "nodeType": "private_company",
+      "name": "Adobe Inc.",
+      "ticker": "ADBE",
+      "aliases": [
+        "Adobe"
+      ],
+      "queryTerms": [
+        "Adobe",
+        "ADBE",
+        "digital media"
+      ]
+    },
+    {
+      "nodeId": "private_company_CDNS",
+      "nodeType": "private_company",
+      "name": "Cadence Design Systems, Inc.",
+      "ticker": "CDNS",
+      "aliases": [
+        "Cadence"
+      ],
+      "queryTerms": [
+        "Cadence Design Systems",
+        "CDNS",
+        "EDA tools"
+      ]
+    },
+    {
+      "nodeId": "private_company_SNPS",
+      "nodeType": "private_company",
+      "name": "Synopsys, Inc.",
+      "ticker": "SNPS",
+      "aliases": [
+        "Synopsys"
+      ],
+      "queryTerms": [
+        "Synopsys",
+        "SNPS",
+        "software for chip design"
+      ]
+    },
+    {
+      "nodeId": "private_company_INTU",
+      "nodeType": "private_company",
+      "name": "Intuit Inc.",
+      "ticker": "INTU",
+      "aliases": [
+        "Intuit"
+      ],
+      "queryTerms": [
+        "Intuit",
+        "INTU",
+        "financial software"
+      ]
+    },
+    {
+      "nodeId": "private_company_DDOG",
+      "nodeType": "private_company",
+      "name": "Datadog, Inc.",
+      "ticker": "DDOG",
+      "aliases": [
+        "Datadog"
+      ],
+      "queryTerms": [
+        "Datadog",
+        "DDOG",
+        "monitoring and analytics"
+      ]
+    },
+    {
+      "nodeId": "private_company_MSTR",
+      "nodeType": "private_company",
+      "name": "MicroStrategy Incorporated",
+      "ticker": "MSTR",
+      "aliases": [
+        "MicroStrategy"
+      ],
+      "queryTerms": [
+        "MicroStrategy",
+        "MSTR",
+        "business intelligence"
+      ]
+    },
+    {
+      "nodeId": "private_company_ADSK",
+      "nodeType": "private_company",
+      "name": "Autodesk, Inc.",
+      "ticker": "ADSK",
+      "aliases": [
+        "Autodesk"
+      ],
+      "queryTerms": [
+        "Autodesk",
+        "ADSK",
+        "design software"
       ]
     }
   ],
@@ -1894,6 +2023,96 @@
       "confidence": 0.9,
       "sourceType": "llm_generated",
       "notes": "Starbucks is a key player in the food service industry, influencing trends and technologies.",
+      "lastReviewedAt": "2026-05-29"
+    },
+    {
+      "fromNodeId": "private_company_PLTR",
+      "toNodeId": "ticker_APP",
+      "edgeType": "competitor_of",
+      "strength": "high",
+      "confidence": 0.9,
+      "sourceType": "llm_generated",
+      "notes": "Palantir Technologies competes with AppLovin in data analytics and marketing solutions.",
+      "lastReviewedAt": "2026-05-29"
+    },
+    {
+      "fromNodeId": "ticker_CRM",
+      "toNodeId": "ticker_APP",
+      "edgeType": "competitor_of",
+      "strength": "high",
+      "confidence": 0.9,
+      "sourceType": "llm_generated",
+      "notes": "Salesforce provides customer relationship management solutions that overlap with AppLovin's marketing services.",
+      "lastReviewedAt": "2026-05-29"
+    },
+    {
+      "fromNodeId": "private_company_ADBE",
+      "toNodeId": "ticker_APP",
+      "edgeType": "competitor_of",
+      "strength": "medium",
+      "confidence": 0.6,
+      "sourceType": "llm_generated",
+      "notes": "Adobe's marketing cloud services compete with AppLovin's advertising technology.",
+      "lastReviewedAt": "2026-05-29"
+    },
+    {
+      "fromNodeId": "private_company_CDNS",
+      "toNodeId": "ticker_APP",
+      "edgeType": "partner_of",
+      "strength": "medium",
+      "confidence": 0.5,
+      "sourceType": "llm_generated",
+      "notes": "Cadence Design Systems may partner with AppLovin for software development tools.",
+      "lastReviewedAt": "2026-05-29"
+    },
+    {
+      "fromNodeId": "private_company_SNPS",
+      "toNodeId": "ticker_APP",
+      "edgeType": "partner_of",
+      "strength": "medium",
+      "confidence": 0.5,
+      "sourceType": "llm_generated",
+      "notes": "Synopsys could collaborate with AppLovin on software solutions.",
+      "lastReviewedAt": "2026-05-29"
+    },
+    {
+      "fromNodeId": "private_company_INTU",
+      "toNodeId": "ticker_APP",
+      "edgeType": "customer_of",
+      "strength": "medium",
+      "confidence": 0.6,
+      "sourceType": "llm_generated",
+      "notes": "Intuit may use AppLovin's services for marketing their financial products.",
+      "lastReviewedAt": "2026-05-29"
+    },
+    {
+      "fromNodeId": "private_company_DDOG",
+      "toNodeId": "ticker_APP",
+      "edgeType": "partner_of",
+      "strength": "medium",
+      "confidence": 0.5,
+      "sourceType": "llm_generated",
+      "notes": "Datadog could partner with AppLovin for analytics services.",
+      "lastReviewedAt": "2026-05-29"
+    },
+    {
+      "fromNodeId": "private_company_MSTR",
+      "toNodeId": "ticker_APP",
+      "edgeType": "competitor_of",
+      "strength": "medium",
+      "confidence": 0.6,
+      "sourceType": "llm_generated",
+      "notes": "MicroStrategy competes with AppLovin in the business intelligence space.",
+      "lastReviewedAt": "2026-05-29"
+    },
+    {
+      "fromNodeId": "private_company_ADSK",
+      "toNodeId": "ticker_APP",
+      "edgeType": "partner_of",
+      "strength": "medium",
+      "confidence": 0.5,
+      "sourceType": "llm_generated",
+      "notes": "Autodesk may collaborate with AppLovin on design and marketing software.",
       "lastReviewedAt": "2026-05-29"
     }
   ]

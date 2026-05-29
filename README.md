@@ -38,6 +38,8 @@ Assign Catalyst IDs         (no ledger in Iteration 1)
         ↓
 Per-Ticker Synthesis        (LLM: gpt-4o-mini / gemini-2.5-flash)
         ↓
+Output Safety Judge         (LLM: grounding + no-advice + path check)
+        ↓
 Compliance Gate             (regex scrub of buy/sell language)
 
 Iteration 2
@@ -50,6 +52,8 @@ Route Events to Tickers     (direct tag routing)
 Ledger Memory Check         (local embeddings / lexical fallback)
         ↓
 Per-Ticker Synthesis        (LLM: gpt-4o-mini / gemini-2.5-flash)
+        ↓
+Output Safety Judge         (LLM: grounding + no-advice + path check)
         ↓
 Compliance Gate             (regex scrub of buy/sell language)
 
@@ -64,10 +68,16 @@ Ledger Memory Check         (local embeddings / lexical fallback)
         ↓
 Per-Ticker Synthesis        (LLM: gpt-4o-mini / gemini-2.5-flash)
         ↓
+Output Safety Judge         (LLM: grounding + no-advice + path check)
+        ↓
 Compliance Gate             (regex scrub of buy/sell language)
 ```
 
-**No API keys?** The app runs in no-key mode using pre-baked mock events and rules-based synthesis. All three replay scenarios work fully offline.
+**No API keys?** The app runs in no-key mode using pre-baked mock events and rules-based synthesis. All three replay scenarios work fully offline; non-empty mock syntheses mark the LLM judge as skipped in `guardrailMetadata`.
+
+### Output guardrails
+
+Every non-empty LLM synthesis is checked by a structured output safety judge before the regex compliance gate. The judge verifies that claims are grounded in the ticker bucket, that the briefing contains no trading advice/action language, and that indirect catalyst explanations stay inside the routed `impactPath` and `reasonForRouting`. If the judge fails, the backend regenerates that ticker's synthesis once with the defects named; if the regenerated output still fails or the judge errors, the briefing is degraded to **Briefing suppressed pending verification** with no main catalysts. The API response includes `guardrailMetadata`, and the ticker detail view shows a badge such as `Verified`, `Regenerated after guardrail`, or `Suppressed pending verification`.
 
 ### Exposure-graph expansion (separate from the run pipeline)
 
@@ -110,7 +120,7 @@ The application uses up to four external API keys. **All are optional** — see 
 
 ### `GEMINI_API_KEY` — Google Gemini (default LLM)
 
-Used for: canonical event extraction (`gemini-2.5-flash`) and per-ticker synthesis (`gemini-2.5-flash`). The deduplication ledger does **not** use this key — it embeds locally (see [Catalyst dedup embeddings](#catalyst-dedup-embeddings-local-no-api-key) below).
+Used for: canonical event extraction (`gemini-2.5-flash`), per-ticker synthesis (`gemini-2.5-flash`), graph expansion, and the output safety judge. The deduplication ledger does **not** use this key — it embeds locally (see [Catalyst dedup embeddings](#catalyst-dedup-embeddings-local-no-api-key) below).
 
 **How to get it:**
 1. Go to [Google AI Studio](https://aistudio.google.com/app/apikey).
@@ -123,7 +133,7 @@ The free tier is sufficient for all replay scenarios.
 
 ### `OPENAI_API_KEY` — OpenAI (alternative LLM)
 
-Used for: canonical event extraction (`gpt-4.1-nano`) and per-ticker synthesis (`gpt-4o-mini`). The deduplication ledger does **not** use this key — it embeds locally (see [Catalyst dedup embeddings](#catalyst-dedup-embeddings-local-no-api-key) below).
+Used for: canonical event extraction (`gpt-4.1-nano`), per-ticker synthesis (`gpt-4o-mini`), graph expansion, and the output safety judge. The deduplication ledger does **not** use this key — it embeds locally (see [Catalyst dedup embeddings](#catalyst-dedup-embeddings-local-no-api-key) below).
 
 Set `LLM_PROVIDER=openai` in your `.env` to activate this path. If both keys are set, `LLM_PROVIDER` controls which one is used. If `GEMINI_API_KEY` is absent but `OPENAI_API_KEY` is present, the app automatically falls back to OpenAI regardless of `LLM_PROVIDER`.
 
@@ -290,7 +300,7 @@ The `.vscode/launch.json` includes pre-configured debug/run configurations:
 
 ## Running Tests
 
-The test suite verifies the three LangGraph workflows end-to-end: direct routing, duplicate suppression, and cross-impact graph traversal.
+The test suite verifies the three LangGraph workflows end-to-end, plus the implemented guardrail paths: direct routing, duplicate suppression, cross-impact graph traversal, prompt-injection framing, judge pass, judge-regeneration, judge-degrade, and judge-error degradation.
 
 ```bash
 # From the repository root, with the venv active
@@ -306,6 +316,7 @@ Or via the VS Code launch config `Backend: Run Unit Tests`.
 | `test_iteration_1_direct_news` | `direct_news`, Iteration 1 | AAPL and MSFT are directly routed; syntheses are generated |
 | `test_iteration_2_ledger_duplicates` | `duplicate_news`, Iteration 2 | Exactly 1 duplicate is suppressed for AAPL across 3 articles |
 | `test_iteration_3_cross_impact_routing` | `cross_impact`, Iteration 3 | Taiwan earthquake → AAPL/NVDA/TSM; Anthropic launch → MSFT/NVDA; Red Sea → DAL |
+| `TestGuardrails` | Guardrail unit scenarios | Prompt-injection wrapper, judge pass, regeneration, double-fail degradation, and judge exception degradation |
 
 Tests run with mocked LLM responses and do not require any API keys.
 
@@ -319,7 +330,7 @@ Select the iteration and scenario from the header dropdowns, then click **Fetch 
 - Uses `backend/iterations/iter1.py`.
 - Fetches news articles tagged with watchlist ticker symbols.
 - Extracts structured canonical events via LLM (or mock).
-- Synthesizes a briefing for each ticker that has direct news.
+- Synthesizes a briefing for each ticker that has direct news, then verifies it with the output safety judge when LLM keys are configured.
 - No deduplication, no cross-impact routing.
 
 **Recommended scenario:** `Replay Scenario 1: Direct Announcements`  
@@ -388,7 +399,7 @@ problem-first-AI-capstone-team13/
 │   ├── persistence.py        # JSON file persistence for watchlist + graph + run results
 │   ├── iterations/
 │   │   ├── __init__.py       # Iteration selector/cacher for compiled LangGraph apps
-│   │   ├── common.py         # Shared schemas, prompts, and step helpers
+│   │   ├── common.py         # Shared schemas, prompts, step helpers, and output safety judge
 │   │   ├── iter1.py          # Direct-news workflow
 │   │   ├── iter2.py          # Direct-news + catalyst memory workflow
 │   │   └── iter3.py          # Cross-impact workflow with graph expansion inputs

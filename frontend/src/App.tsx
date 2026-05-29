@@ -10,6 +10,14 @@ interface Catalyst {
   impactPath?: string[];
 }
 
+interface GuardrailMetadata {
+  judgeStatus: 'passed' | 'regenerated_passed' | 'degraded' | 'skipped_empty' | 'skipped_no_llm_mock_mode' | 'not_run_synthesis_failed';
+  judgeAttempts: number;
+  judgeDefects: string[];
+  regenerated: boolean;
+  degraded: boolean;
+}
+
 interface TickerSummary {
   summaryId: string;
   ticker: string;
@@ -24,6 +32,7 @@ interface TickerSummary {
   sourceArticleUrls: string[];
   complianceDisclaimer?: string;
   notFinancialAdvice: boolean;
+  guardrailMetadata?: GuardrailMetadata;
 }
 
 interface EventEntry {
@@ -1105,6 +1114,33 @@ export default function App() {
                             <span className="badge" style={{ background: 'rgba(255,255,255,0.05)', color: 'var(--text-secondary)', display: 'inline-flex' }}>
                               Confidence: {synthesis.confidence}
                             </span>
+                            {synthesis.guardrailMetadata && (
+                              <span className="badge" style={{
+                                background: 
+                                  synthesis.guardrailMetadata.judgeStatus === 'passed' ? 'rgba(34, 197, 94, 0.1)' :
+                                  synthesis.guardrailMetadata.judgeStatus === 'regenerated_passed' ? 'rgba(234, 88, 12, 0.1)' :
+                                  synthesis.guardrailMetadata.judgeStatus === 'degraded' ? 'rgba(239, 68, 68, 0.1)' :
+                                  'rgba(255, 255, 255, 0.05)',
+                                color:
+                                  synthesis.guardrailMetadata.judgeStatus === 'passed' ? 'var(--accent-green)' :
+                                  synthesis.guardrailMetadata.judgeStatus === 'regenerated_passed' ? 'var(--accent-orange)' :
+                                  synthesis.guardrailMetadata.judgeStatus === 'degraded' ? 'var(--accent-red)' :
+                                  'var(--text-secondary)',
+                                borderColor:
+                                  synthesis.guardrailMetadata.judgeStatus === 'passed' ? 'rgba(34, 197, 94, 0.2)' :
+                                  synthesis.guardrailMetadata.judgeStatus === 'regenerated_passed' ? 'rgba(234, 88, 12, 0.2)' :
+                                  synthesis.guardrailMetadata.judgeStatus === 'degraded' ? 'rgba(239, 68, 68, 0.2)' :
+                                  'rgba(255, 255, 255, 0.1)',
+                                display: 'inline-flex'
+                              }}>
+                                {synthesis.guardrailMetadata.judgeStatus === 'passed' ? 'Verified' :
+                                 synthesis.guardrailMetadata.judgeStatus === 'regenerated_passed' ? 'Regenerated after guardrail' :
+                                 synthesis.guardrailMetadata.judgeStatus === 'degraded' ? 'Suppressed pending verification' :
+                                 synthesis.guardrailMetadata.judgeStatus === 'skipped_empty' ? 'Skipped (No catalysts)' :
+                                 synthesis.guardrailMetadata.judgeStatus === 'skipped_no_llm_mock_mode' ? 'Skipped (No LLM keys)' :
+                                 synthesis.guardrailMetadata.judgeStatus}
+                              </span>
+                            )}
                           </div>
                         </div>
 
