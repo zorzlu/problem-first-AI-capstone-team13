@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Play, RotateCcw, Plus, Trash2, ExternalLink, Network, Database, ShieldAlert, Cpu, Layers, Maximize2, X, RefreshCw, Menu, ChevronDown, ChevronUp, Clock, AlertCircle } from 'lucide-react';
+import { Play, RotateCcw, Plus, Search, ExternalLink, Network, Database, ShieldAlert, Cpu, Layers, Maximize2, X, RefreshCw, Menu, ChevronDown, ChevronUp, Clock, AlertCircle } from 'lucide-react';
 
 interface Catalyst {
   label: string;
@@ -206,6 +206,7 @@ function GraphView({ graphData, width, height, scale = 1, selectedCatalystPath }
 export default function App() {
   const [watchlist, setWatchlist] = useState<string[]>([]);
   const [newTicker, setNewTicker] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
   const [iteration, setIteration] = useState<number>(3);
   const [scenarioId, setScenarioId] = useState<string>('live');
   const [activeTicker, setActiveTicker] = useState<string>('dashboard');
@@ -225,6 +226,7 @@ export default function App() {
   const [ledgerExpanded, setLedgerExpanded] = useState(false);
   const [activeDashTab, setActiveDashTab] = useState<'watchlist' | 'ledger'>('watchlist');
   const [popoverOpen, setPopoverOpen] = useState(false);
+  const [addTickerOpen, setAddTickerOpen] = useState(false);
   const [synthesisExpanded, setSynthesisExpanded] = useState(false);
   const [selectedBackgroundStory, setSelectedBackgroundStory] = useState<string | null>(null);
   const [summaryDetailExpanded, setSummaryDetailExpanded] = useState(false);
@@ -491,7 +493,12 @@ export default function App() {
     e.preventDefault();
     if (!newTicker) return;
     const cleanTicker = newTicker.trim().toUpperCase();
-    if (watchlist.includes(cleanTicker)) return;
+    if (watchlist.includes(cleanTicker)) {
+      setNewTicker('');
+      setActiveTicker(cleanTicker);
+      setAddTickerOpen(false);
+      return;
+    }
 
     const updated = [...watchlist, cleanTicker];
     try {
@@ -503,30 +510,13 @@ export default function App() {
       const data = await res.json();
       setWatchlist(data.tickers);
       setNewTicker('');
+      setAddTickerOpen(false);
       setActiveTicker(cleanTicker);
       // The add is immediate; graph expansion runs in the background. Seed the status
       // map so the polling effect starts and the UI shows "pending" right away.
       setGraphStatus(data.expansionStatus || {});
     } catch (e) {
       console.error('Error updating watchlist', e);
-    }
-  };
-
-  const removeTicker = async (tickerToRemove: string) => {
-    const updated = watchlist.filter(t => t !== tickerToRemove);
-    try {
-      const res = await fetch('/api/watchlist', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ tickers: updated })
-      });
-      const data = await res.json();
-      setWatchlist(data.tickers);
-      if (activeTicker === tickerToRemove) {
-        setActiveTicker(data.tickers[0] || '');
-      }
-    } catch (e) {
-      console.error('Error removing ticker', e);
     }
   };
 
@@ -582,6 +572,18 @@ export default function App() {
   const getActiveBucket = (): TickerBucket | null => {
     if (!runResult || !runResult.tickerBuckets) return null;
     return runResult.tickerBuckets[activeTicker] || null;
+  };
+
+  const getTickerCompanyName = (ticker: string): string => {
+    const node = graphData.nodes.find(n => n.nodeType === 'ticker' && n.ticker === ticker);
+    if (node) return node.name;
+    return (
+      ticker === 'AAPL' ? 'Apple Inc.' :
+      ticker === 'MSFT' ? 'Microsoft Corp.' :
+      ticker === 'NVDA' ? 'Nvidia Corp.' :
+      ticker === 'TSM' ? 'TSMC' :
+      ticker === 'DAL' ? 'Delta Air Lines' : 'Public Company'
+    );
   };
 
   // Small status pill shown next to each watchlist ticker, reflecting graph expansion.
@@ -714,43 +716,50 @@ export default function App() {
           <div className="sidebar-backdrop" onClick={() => setSidebarOpen(false)} />
         )}
         <aside className={`glass sidebar ${sidebarOpen ? 'open' : ''}`}>
-          <div>
-            <h2 className="section-title" style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-              <Layers size={14} /> Watchlist Tickers
-            </h2>
-            
-            {/* Watchlist adder */}
-            <form onSubmit={addTicker} className="watchlist-manage">
-              <input 
-                type="text" 
-                placeholder="ADD TICKER (e.g. MSFT)" 
-                className="watchlist-input" 
-                value={newTicker}
-                onChange={(e) => setNewTicker(e.target.value)}
-              />
-              <button type="submit" className="btn-primary" style={{ padding: '0.4rem 0.8rem', boxShadow: 'none' }}>
-                <Plus size={16} />
-              </button>
-            </form>
-          </div>
-
-          {/* Ticker List */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', flex: 1, overflowY: 'auto' }}>
-            {/* Pinned Overview Dashboard Selector */}
-            <div 
-              className={`glass glass-hover watchlist-item ${activeTicker === 'dashboard' ? 'active' : ''}`}
+          {/* Pinned Overview Dashboard Selector */}
+          <button
+              className={`glass glass-hover watchlist-dashboard-btn ${activeTicker === 'dashboard' ? 'active' : ''}`}
               onClick={() => {
                 setActiveTicker('dashboard');
                 setSelectedCatalystPath(null);
                 setSidebarOpen(false);
               }}
-              style={{ borderStyle: 'dashed', borderColor: 'rgba(255,255,255,0.15)', display: 'flex', gap: '0.5rem', alignItems: 'center', padding: '0.75rem 1rem' }}
             >
               <Layers size={14} style={{ color: 'var(--accent-purple)' }} />
-              <div style={{ fontWeight: 800, fontSize: '0.85rem' }}>Overview Dashboard</div>
+              <span>Overview Dashboard</span>
+          </button>
+
+          <div className="watchlist-controls">
+            <div>
+              <h2 className="section-title" style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', marginBottom: '0.2rem' }}>
+                Watchlist Tickers
+              </h2>
+              <div style={{ fontSize: '0.68rem', color: 'var(--text-secondary)' }}>Active Asset Impact</div>
+            </div>
+            
+            <div className="watchlist-search">
+              <Search size={14} />
+              <input 
+                type="search" 
+                placeholder="Search tickers..." 
+                className="watchlist-input" 
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
             </div>
 
+            <button type="button" className="btn-secondary add-asset-btn" onClick={() => setAddTickerOpen(true)}>
+              <Plus size={15} />
+              <span>Add Asset</span>
+            </button>
+          </div>
+
+          {/* Ticker List */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', flex: 1, overflowY: 'auto' }}>
             {watchlist.map(ticker => {
+              const companyName = getTickerCompanyName(ticker);
+              const query = searchQuery.trim().toLowerCase();
+              if (query && !ticker.toLowerCase().includes(query) && !companyName.toLowerCase().includes(query)) return null;
               const isActive = activeTicker === ticker;
               const tickerSynthesis = runResult?.tickerSyntheses?.[ticker];
               const influence = tickerSynthesis?.overallPossibleInfluence || 'unclear';
@@ -766,49 +775,13 @@ export default function App() {
                     setSidebarOpen(false);
                   }}
                 >
-                  <div>
+                  <div className="watchlist-copy">
                     <div className="ticker-name">{ticker}</div>
                     <div className="company-name">
-                      {(() => {
-                        const node = graphData.nodes.find(n => n.nodeType === 'ticker' && n.ticker === ticker);
-                        return node ? node.name : (
-                          ticker === 'AAPL' ? 'Apple Inc.' :
-                          ticker === 'MSFT' ? 'Microsoft Corp.' :
-                          ticker === 'NVDA' ? 'Nvidia Corp.' :
-                          ticker === 'TSM' ? 'TSMC' :
-                          ticker === 'DAL' ? 'Delta Air Lines' : 'Public Company'
-                        );
-                      })()}
+                      {companyName}
                     </div>
                   </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.25rem' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.15rem' }}>
-                      {/* Expansion updates only make sense in Iteration 3 */}
-                      {iteration === 3 && (
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            triggerExpansion(ticker);
-                          }}
-                          style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}
-                          title="Re-run exposure-graph update for this ticker"
-                          disabled={['pending', 'running'].includes(graphStatusFor(ticker))}
-                        >
-                          <RefreshCw size={12} />
-                        </button>
-                      )}
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          removeTicker(ticker);
-                        }}
-                        style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}
-                        title="Remove"
-                      >
-                        <Trash2 size={13} hover-color="var(--accent-red)" />
-                      </button>
-                    </div>
-                    {iteration === 3 && renderGraphStatusPill(ticker)}
+                  <div className="watchlist-meta">
                     {runResult && (
                       <span className={`badge ${hasCatalysts ? influence : 'unclear'}`} style={{ fontSize: '0.65rem' }}>
                         {hasCatalysts ? influence : 'no change'}
@@ -1449,6 +1422,39 @@ export default function App() {
           )}
         </main>
       </div>
+
+      {addTickerOpen && (
+        <div className="modal-backdrop" onClick={() => setAddTickerOpen(false)}>
+          <form className="glass add-ticker-modal" onSubmit={addTicker} onClick={(e) => e.stopPropagation()}>
+            <div className="add-ticker-header">
+              <div>
+                <h2>Add Asset</h2>
+                <p>Add a ticker to the active watchlist.</p>
+              </div>
+              <button type="button" className="icon-btn" onClick={() => setAddTickerOpen(false)} aria-label="Close add asset dialog">
+                <X size={16} />
+              </button>
+            </div>
+            <input
+              autoFocus
+              type="text"
+              placeholder="Ticker symbol, e.g. MSFT"
+              className="watchlist-input add-ticker-input"
+              value={newTicker}
+              onChange={(e) => setNewTicker(e.target.value)}
+            />
+            <div className="add-ticker-actions">
+              <button type="button" className="btn-secondary" onClick={() => setAddTickerOpen(false)}>
+                Cancel
+              </button>
+              <button type="submit" className="btn-primary" disabled={!newTicker.trim()}>
+                <Plus size={15} />
+                <span>Add Asset</span>
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
 
       {/* Bottom Status Bar */}
       <footer className="status-bar">
