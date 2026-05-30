@@ -8,10 +8,12 @@ by the explicit arguments the iteration modules pass (expand, cross_impact,
 restore_ledger, restore_indirect, focus block).
 """
 import json
+import operator
 import re
-from typing import TypedDict, List, Dict, Any, Tuple, Literal
+from typing import Annotated, TypedDict, List, Dict, Any, Tuple, Literal
 from pydantic import BaseModel, Field
 from langchain_core.messages import HumanMessage, SystemMessage
+from langgraph.types import Send
 from backend.config import get_llm, get_llm_fast, FRESHNESS_LOOKBACK_MINUTES
 from backend.ingestion import get_news_payload
 from backend.routing import route_cross_impact, get_cross_impact_queries
@@ -101,6 +103,7 @@ class WorkflowState(TypedDict):
     ticker_buckets: Dict[str, Dict[str, Any]]
     ticker_syntheses: Dict[str, Dict[str, Any]]
     duplicate_counts: Dict[str, int]
+    ticker_synthesis_results: Annotated[List[Dict[str, Any]], operator.add]
     ingestion_metadata: Dict[str, Any]
     expansion_keywords: List[str]  # Iter-3 cross-impact search terms derived from the exposure graph
     expansion_tickers: List[str]   # Iter-3 peer tickers derived from the exposure graph
@@ -759,6 +762,48 @@ def _empty_state_summary(ticker: str, state: WorkflowState) -> str:
     return f"No catalysts routed to {ticker} in this refresh."
 
 
+SYNTHESIS_SYSTEM_PROMPT = """You are a professional financial synthesis analyst supporting a discretionary intraday trader. 
+Your task is to review the direct and indirect catalyst events for a specific watched ticker and write a market-impact synthesis.
+
+Each event in the context includes a "minutesAgo" field indicating how many minutes ago it was published relative to now.
+RECENCY RULE: Weight events published more recently (lower minutesAgo) more heavily in your assessment.
+For intraday trading, events < 30 minutes old are HIGH priority. Events 30-90 minutes old are MEDIUM priority.
+Events > 90 minutes old are BACKGROUND context — still relevant but should not dominate the headline.
+
+PER-FACT RECENCY: Within a single catalyst, each item in "hardFacts" carries its own "minutesAgo".
+A long-running catalyst accumulates facts over time: facts with low minutesAgo are the latest breaking
+developments and should drive the headline, while older facts in the same catalyst are prior context.
+Do not treat an older fact as if it just broke simply because it shares a catalyst with a fresh update.
+
+Field guidance (the output shape itself is enforced for you):
+- summaryHeadline: one concise headline summarizing the net catalyst situation.
+- situationSummary: a paragraph explaining what happened, referencing direct and indirect paths, and explicitly noting which catalysts are breaking vs. background.
+- mainCatalysts[].eventId: MUST be set to the exact eventId of the corresponding event from the CONTEXT BUCKET.
+- mainCatalysts[].significance: An integer from 1 (low/negligible impact) to 10 (critical/existential disruption) reflecting the net impact of this catalyst event specifically for the ticker being analyzed.
+- mainCatalysts[].impactPath: the ordered chain of nodes describing how the event reaches the ticker.
+- uncertainties / watchItems: specific signals, announcements, or price markers for the trader to monitor next.
+
+Cross-impact path strength:
+Each cross-impact event includes a "pathStrength" field indicating routing confidence:
+- "strong" (pathConfidence >= 0.70): The exposure path is well-supported. Include this event in mainCatalysts.
+- "weak" (pathConfidence 0.45–0.69): The exposure path is marginal. Do NOT include in mainCatalysts.
+  Instead, reference it only in watchItems or uncertainties (e.g., "Watch for confirmation of [event] impact via [path]").
+
+Strict Rules:
+1. ONLY utilize the facts provided in the prompt context. Do NOT invent companies, news, or metrics. Every claim in summaryHeadline, situationSummary, mainCatalysts, uncertainties, and watchItems must be traceable to the provided CONTEXT BUCKET. Do not introduce companies, products, regions, numbers, timelines, or causal relationships absent from the bucket.
+2. For indirect catalysts, explain only the supplied impactPath and reasonForRouting; do not invent additional graph edges.
+3. Weak cross-impact paths must remain in watchItems or uncertainties, not promoted as a high-confidence main catalyst.
+4. If there are no new events in the direct or cross-impact arrays, output the following:
+   - summaryHeadline: "No new catalysts detected"
+   - situationSummary: "No new catalysts detected for this ticker in the latest refresh."
+   - overallPossibleInfluence: "unclear"
+   - confidence: "low"
+   - mainCatalysts: []
+5. Use tentative, risk-aware language. Never state market movements as guarantees. Use terms like "possible pressure", "potential risk", "tentative impact".
+6. Do NOT give investment or trading advice. Never write action language aimed at the trader, including "buy", "sell", "short", "enter", "exit", "take profit", "stop loss", "recommend", or urging the user to take action.
+"""
+
+
 JUDGE_SYSTEM_PROMPT = """You are an independent safety, compliance, and grounding judge for financial catalyst briefings.
 Your job is to evaluate if a generated ticker synthesis briefing complies with safety guidelines.
 
@@ -827,6 +872,578 @@ def build_degraded_synthesis(ticker: str, reason: str, source_ids: List[str], so
             "degraded": True
         }
     }
+
+
+def build_ticker_buckets_for_synthesis(state: WorkflowState, restore_ledger: bool, restore_indirect: bool) -> Dict[str, Any]:
+    """Build per-ticker synthesis buckets before LangGraph fans out ticker workers."""
+    print(f"--- [Node 5a: Build Ticker Buckets] (restore_ledger={restore_ledger}, restore_indirect={restore_indirect}) ---")
+    try:
+        from opentelemetry import trace as otel_trace
+        span = otel_trace.get_current_span()
+    except Exception:
+        span = None
+
+    if state.get("llm_failed", False):
+        print("Skipping synthesis fan-out: upstream LLM failure detected (llm_failed=True).")
+        watchlist = state.get("watchlist", [])
+        reason = state.get("failure_reason") or "The model could not be reached during event extraction."
+        halted_syntheses = {}
+        for ticker in watchlist:
+            halted_syntheses[ticker] = {
+                "summaryId": f"sum_halted_{ticker}",
+                "ticker": ticker,
+                "summaryHeadline": "Pipeline halted — event extraction failed",
+                "situationSummary": f"No synthesis was produced. {reason}",
+                "mainCatalysts": [],
+                "overallPossibleInfluence": "unclear",
+                "confidence": "low",
+                "uncertainties": [reason],
+                "watchItems": ["Re-run the pipeline; if the failure persists, check the backend logs for the underlying cause."],
+                "sourceEventIds": [],
+                "sourceArticleUrls": [],
+                "notFinancialAdvice": True,
+                "guardrailMetadata": {
+                    "judgeStatus": "not_run_synthesis_failed",
+                    "judgeAttempts": 0,
+                    "judgeDefects": [reason],
+                    "regenerated": False,
+                    "degraded": True,
+                },
+            }
+        if span and span.is_recording():
+            span.set_attribute("llm_failed", True)
+            span.set_attribute("failure_reason", reason)
+        return {"ticker_buckets": {}, "ticker_syntheses": halted_syntheses, "ticker_synthesis_results": []}
+
+    watchlist = state.get("watchlist", [])
+    routed_candidates = state.get("routed_candidates", [])
+    duplicate_counts = state.get("duplicate_counts", {})
+    canonical_events = {e["eventId"]: e for e in state.get("canonical_events", [])}
+
+    if span and span.is_recording():
+        span.set_attribute("watchlist", watchlist)
+        span.set_attribute("llm_failed", False)
+
+    ticker_buckets = {
+        ticker: {
+            "ticker": ticker,
+            "directEvents": [],
+            "crossImpactEvents": [],
+            "suppressedDuplicateCount": duplicate_counts.get(ticker, 0),
+        }
+        for ticker in watchlist
+    }
+
+    from backend.memory import get_ledger
+    iteration = state.get("iteration", 2)
+    active_ledger = get_ledger(iteration) if restore_ledger else []
+    ledger_by_catalyst = {e["catalystId"]: e for e in active_ledger}
+
+    for cand in routed_candidates:
+        ticker = cand["ticker"]
+        event_id = cand["eventId"]
+        event = canonical_events[event_id]
+
+        ledger_entry = ledger_by_catalyst.get(cand.get("catalystId"))
+        if ledger_entry and ledger_entry.get("hardFactsSeen"):
+            facts_timed = _normalize_timed_facts(ledger_entry["hardFactsSeen"], event.get("publishedAt", ""))
+        else:
+            facts_timed = _normalize_timed_facts(event.get("hardFacts", []), event.get("publishedAt", ""))
+
+        event_entry = {
+            "eventId": event_id,
+            "catalystId": cand.get("catalystId"),
+            "eventType": event["eventType"],
+            "headline": event.get("sourceHeadline", ""),
+            "eventSummary": event["eventSummary"],
+            "hardFacts": [f["fact"] for f in facts_timed],
+            "hardFactsTimed": facts_timed,
+            "possibleDirectionalPressure": event["possibleDirectionalPressure"],
+            "sourceArticleIds": event["sourceArticleIds"],
+            "sourceUrl": event.get("sourceUrl", ""),
+            "uncertaintyNotes": event.get("uncertaintyNotes", []),
+            "publishedAt": event.get("publishedAt", ""),
+        }
+
+        if cand["relationshipType"] == "direct":
+            ticker_buckets[ticker]["directEvents"].append(event_entry)
+        else:
+            event_entry["impactPath"] = cand["impactPath"]
+            event_entry["reasonForRouting"] = cand["reasonForRouting"]
+            event_entry["pathConfidence"] = cand["pathConfidence"]
+            event_entry["pathStrength"] = cand.get("pathStrength", "strong")
+            ticker_buckets[ticker]["crossImpactEvents"].append(event_entry)
+
+    for ticker in watchlist:
+        ticker_ledger_entries = [entry for entry in active_ledger if entry["ticker"] == ticker]
+
+        seen_catalyst_ids = {
+            e["catalystId"]
+            for e in ticker_buckets[ticker]["directEvents"] + ticker_buckets[ticker]["crossImpactEvents"]
+            if e.get("catalystId")
+        }
+
+        for entry in ticker_ledger_entries:
+            cat_id = entry["catalystId"]
+            if cat_id in seen_catalyst_ids:
+                continue
+
+            rel_type = entry.get("relationshipType", "direct")
+            if not restore_indirect and rel_type != "direct":
+                continue
+
+            entry_fallback_ts = entry.get("lastUpdatedAt") or entry.get("firstSeenAt") or ""
+            recon_facts_timed = _normalize_timed_facts(entry.get("hardFactsSeen", []), entry_fallback_ts)
+            fact_times = [f["publishedAt"] for f in recon_facts_timed if f.get("publishedAt")]
+            recon_published = max(fact_times) if fact_times else entry_fallback_ts
+
+            reconstructed_entry = {
+                "eventId": f"evt_{cat_id}",
+                "catalystId": cat_id,
+                "eventType": entry["eventType"],
+                "headline": entry.get("sourceHeadline", ""),
+                "eventSummary": entry["canonicalSummary"],
+                "hardFacts": [f["fact"] for f in recon_facts_timed],
+                "hardFactsTimed": recon_facts_timed,
+                "possibleDirectionalPressure": entry.get("possibleDirectionalPressure", "unclear"),
+                "sourceArticleIds": entry.get("memberArticleIds", []),
+                "sourceUrl": entry.get("sourceUrl", ""),
+                "uncertaintyNotes": entry.get("uncertaintyNotes", []),
+                "publishedAt": recon_published,
+            }
+
+            if rel_type == "direct":
+                ticker_buckets[ticker]["directEvents"].append(reconstructed_entry)
+            else:
+                reconstructed_entry["impactPath"] = [entry["eventType"], ticker]
+                reconstructed_entry["reasonForRouting"] = "Restored from exposure graph memory."
+                reconstructed_entry["pathConfidence"] = 1.0
+                reconstructed_entry["pathStrength"] = "strong"
+                ticker_buckets[ticker]["crossImpactEvents"].append(reconstructed_entry)
+
+        if span and span.is_recording():
+            span.add_event("bucket_created", {
+                "ticker": ticker,
+                "direct_events_count": len(ticker_buckets[ticker]["directEvents"]),
+                "cross_impact_events_count": len(ticker_buckets[ticker]["crossImpactEvents"]),
+            })
+
+    return {"ticker_buckets": ticker_buckets, "ticker_synthesis_results": []}
+
+
+def dispatch_ticker_synthesis(state: WorkflowState):
+    """Fan out one LangGraph branch per ticker bucket using the Send API."""
+    buckets = state.get("ticker_buckets", {})
+    if not buckets:
+        return "collect_ticker_syntheses"
+    return [
+        Send(
+            "synthesize_one_ticker",
+            {
+                **state,
+                "active_synthesis_ticker": ticker,
+                "active_synthesis_bucket": bucket,
+            },
+        )
+        for ticker, bucket in buckets.items()
+    ]
+
+
+def _annotate_bucket_for_synthesis(bucket: Dict[str, Any]) -> Dict[str, Any]:
+    ref_time = datetime_now()
+
+    def annotate_event_recency(event: Dict[str, Any]) -> Dict[str, Any]:
+        event["minutesAgo"] = _minutes_ago(
+            event.get("publishedAt", "") or event.get("lastUpdatedAt", "") or event.get("firstSeenAt", ""),
+            ref_time,
+        )
+        timed = event.get("hardFactsTimed")
+        if timed:
+            event["hardFacts"] = [
+                {"fact": f.get("fact", ""), "minutesAgo": _minutes_ago(f.get("publishedAt", ""), ref_time)}
+                for f in timed
+            ]
+        event.pop("hardFactsTimed", None)
+        return event
+
+    annotated_bucket = dict(bucket)
+    annotated_bucket["directEvents"] = [annotate_event_recency(dict(e)) for e in bucket.get("directEvents", [])]
+    annotated_bucket["crossImpactEvents"] = [annotate_event_recency(dict(e)) for e in bucket.get("crossImpactEvents", [])]
+    return annotated_bucket
+
+
+def _source_refs_for_bucket(bucket: Dict[str, Any]) -> Tuple[List[str], List[str]]:
+    src_ids = []
+    src_urls = []
+    for event in bucket.get("directEvents", []) + bucket.get("crossImpactEvents", []):
+        src_ids.append(event["eventId"])
+        if event.get("sourceUrl"):
+            src_urls.append(event["sourceUrl"])
+    return src_ids, list(set(src_urls))
+
+
+def _mock_synthesis_for_ticker(ticker: str, bucket: Dict[str, Any], state: WorkflowState) -> Dict[str, Any]:
+    if not bucket["directEvents"] and not bucket["crossImpactEvents"]:
+        return {
+            "summaryId": f"sum_{ticker}_{int(datetime_now().timestamp())}",
+            "ticker": ticker,
+            "summaryHeadline": "No new catalysts detected",
+            "situationSummary": _empty_state_summary(ticker, state),
+            "mainCatalysts": [],
+            "overallPossibleInfluence": "unclear",
+            "confidence": "low",
+            "uncertainties": ["No active events to assess."],
+            "watchItems": ["Continue monitoring watchlist."],
+            "sourceEventIds": [],
+            "sourceArticleUrls": [],
+            "notFinancialAdvice": True,
+            "guardrailMetadata": {
+                "judgeStatus": "skipped_empty",
+                "judgeAttempts": 0,
+                "judgeDefects": [],
+                "regenerated": False,
+                "degraded": False,
+            },
+        }
+
+    all_events = bucket["directEvents"] + bucket["crossImpactEvents"]
+    pressures = [e["possibleDirectionalPressure"] for e in all_events]
+    if "negative" in pressures and "positive" in pressures:
+        overall_influence = "mixed"
+    elif "negative" in pressures:
+        overall_influence = "negative"
+    elif "positive" in pressures:
+        overall_influence = "positive"
+    else:
+        overall_influence = "mixed"
+
+    direct_summaries = [e["eventSummary"] for e in bucket["directEvents"]]
+    cross_summaries = [f"{e['eventSummary']} (routed via {' -> '.join(e['impactPath'])})" for e in bucket["crossImpactEvents"]]
+
+    headline = f"Catalyst update for {ticker}: "
+    if direct_summaries and cross_summaries:
+        headline += "Direct corporate and indirect exposure events active"
+    elif direct_summaries:
+        headline += "Direct announcements detected"
+    else:
+        headline += "Indirect cross-impact exposure pathways detected"
+
+    situation_summary = f"In the latest monitoring window, {ticker} has active catalysts. "
+    if direct_summaries:
+        situation_summary += f"Direct corporate events: {'. '.join(direct_summaries)}. "
+    if cross_summaries:
+        situation_summary += f"Indirect cross-impact events routed through the exposure graph: {'. '.join(cross_summaries)}."
+
+    main_catalysts = []
+    for de in bucket["directEvents"]:
+        main_catalysts.append({
+            "eventId": de["eventId"],
+            "label": de["eventSummary"],
+            "relationshipType": "direct",
+            "eventType": de["eventType"],
+            "possibleInfluence": de["possibleDirectionalPressure"],
+            "confidence": "high",
+            "recency": "breaking",
+            "impactPath": [ticker],
+            "significance": 8 if de["possibleDirectionalPressure"] in ["positive", "negative"] else 4,
+        })
+    for ce in bucket["crossImpactEvents"]:
+        main_catalysts.append({
+            "eventId": ce["eventId"],
+            "label": ce["eventSummary"],
+            "relationshipType": "indirect",
+            "eventType": ce["eventType"],
+            "possibleInfluence": ce["possibleDirectionalPressure"],
+            "confidence": "tentative",
+            "recency": "recent",
+            "impactPath": ce["impactPath"],
+            "significance": 6 if ce["possibleDirectionalPressure"] in ["positive", "negative"] else 3,
+        })
+
+    uncertainties = []
+    for event in all_events:
+        uncertainties.extend(event.get("uncertaintyNotes", []))
+    uncertainties = list(set(uncertainties)) if uncertainties else ["General macroeconomic conditions and market volatility."]
+    src_ids, src_urls = _source_refs_for_bucket(bucket)
+
+    return {
+        "summaryId": f"sum_{ticker}_{int(datetime_now().timestamp())}",
+        "ticker": ticker,
+        "summaryHeadline": headline,
+        "situationSummary": situation_summary,
+        "mainCatalysts": main_catalysts,
+        "overallPossibleInfluence": overall_influence,
+        "confidence": "tentative",
+        "uncertainties": uncertainties[:4],
+        "watchItems": [
+            f"{ticker} price and volume action",
+            "Follow-up updates from related entities and supply partners",
+        ],
+        "sourceEventIds": src_ids,
+        "sourceArticleUrls": src_urls,
+        "notFinancialAdvice": True,
+        "complianceDisclaimer": "This is an informational briefing, not financial advice. The impact assessment is tentative and may be incomplete. Verify with market data and official sources before making decisions.",
+        "guardrailMetadata": {
+            "judgeStatus": "skipped_no_llm_mock_mode",
+            "judgeAttempts": 0,
+            "judgeDefects": [],
+            "regenerated": False,
+            "degraded": False,
+        },
+    }
+
+
+def synthesize_one_ticker_node(state: WorkflowState) -> Dict[str, Any]:
+    """LangGraph worker node: synthesize and judge exactly one ticker branch."""
+    ticker = state["active_synthesis_ticker"]
+    bucket = state["active_synthesis_bucket"]
+    print(f"--- [Node 5b: Per-Ticker Synthesis Worker] ({ticker}) ---")
+    try:
+        from opentelemetry import trace as otel_trace
+        span = otel_trace.get_current_span()
+    except Exception:
+        span = None
+
+    counts = {"judge_fail": 0, "regeneration": 0, "degrade": 0}
+
+    from backend.config import GEMINI_API_KEY, OPENAI_API_KEY
+    use_mock = not (GEMINI_API_KEY or OPENAI_API_KEY)
+
+    if use_mock:
+        synthesis = _mock_synthesis_for_ticker(ticker, bucket, state)
+        if span and span.is_recording():
+            span.add_event("ticker_synthesis", {
+                "ticker": ticker,
+                "status": "success",
+                "has_catalysts": bool(bucket["directEvents"] or bucket["crossImpactEvents"]),
+                "mode": "mock",
+            })
+        return {"ticker_synthesis_results": [{"ticker": ticker, "synthesis": synthesis, "l3Counts": counts}]}
+
+    if not bucket["directEvents"] and not bucket["crossImpactEvents"]:
+        synthesis = _mock_synthesis_for_ticker(ticker, bucket, state)
+        synthesis["guardrailMetadata"]["judgeStatus"] = "skipped_empty"
+        if span and span.is_recording():
+            span.add_event("ticker_synthesis", {
+                "ticker": ticker,
+                "status": "success",
+                "has_catalysts": False,
+                "mode": "llm",
+            })
+        return {"ticker_synthesis_results": [{"ticker": ticker, "synthesis": synthesis, "l3Counts": counts}]}
+
+    annotated_bucket = _annotate_bucket_for_synthesis(bucket)
+    for event in bucket["crossImpactEvents"]:
+        if span and span.is_recording():
+            span.add_event("path_filtering", {
+                "ticker": ticker,
+                "event_id": event["eventId"],
+                "path_score": event.get("pathConfidence", 0.0),
+                "path_strength": event.get("pathStrength") or "weak",
+                "status": "included" if event.get("pathStrength") == "strong" else "filtered_out",
+            })
+
+    print(f"Synthesizing catalyst briefing for ticker: {ticker}")
+    context_str = json.dumps(annotated_bucket, indent=2)
+    user_prompt = f"TICKER CONFIG: {ticker}\nCONTEXT BUCKET:\n{context_str}"
+    src_ids, src_urls = _source_refs_for_bucket(bucket)
+
+    try:
+        llm = get_llm()
+        structured_llm = llm.with_structured_output(SynthesisOut)
+        result: SynthesisOut = invoke_with_retry(
+            structured_llm,
+            [SystemMessage(content=SYNTHESIS_SYSTEM_PROMPT), HumanMessage(content=user_prompt)],
+            label=f"synthesis for {ticker}",
+        )
+        synthesis = result.model_dump()
+        synthesis["summaryId"] = f"sum_{ticker}_{int(datetime_now().timestamp())}"
+        synthesis["ticker"] = ticker
+        synthesis["sourceEventIds"] = src_ids
+        synthesis["sourceArticleUrls"] = src_urls
+        synthesis["notFinancialAdvice"] = True
+        synthesis["complianceDisclaimer"] = "This is an informational briefing, not financial advice. The net impact assessment is tentative and may be incomplete. Verify with market data and official sources before making decisions."
+
+        try:
+            judge_res = judge_synthesis_output(ticker, annotated_bucket, synthesis)
+            if span and span.is_recording():
+                span.add_event("l3_output_judge", {
+                    "ticker": ticker,
+                    "passes": judge_res.passes,
+                    "groundingPassed": judge_res.groundingPassed,
+                    "advicePassed": judge_res.advicePassed,
+                    "pathPassed": judge_res.pathPassed,
+                    "defects": judge_res.defects,
+                })
+
+            if judge_res.passes:
+                synthesis["guardrailMetadata"] = {
+                    "judgeStatus": "passed",
+                    "judgeAttempts": 1,
+                    "judgeDefects": [],
+                    "regenerated": False,
+                    "degraded": False,
+                }
+                if span and span.is_recording():
+                    span.add_event("ticker_synthesis", {
+                        "ticker": ticker,
+                        "status": "success",
+                        "has_catalysts": True,
+                        "mode": "llm",
+                    })
+                return {"ticker_synthesis_results": [{"ticker": ticker, "synthesis": synthesis, "l3Counts": counts}]}
+
+            print(f"  [guardrail] Judge failed for {ticker}. Defects: {judge_res.defects}")
+            counts["judge_fail"] += 1
+            counts["regeneration"] += 1
+            if span and span.is_recording():
+                span.add_event("l3_regeneration", {
+                    "ticker": ticker,
+                    "defects": judge_res.defects,
+                    "regeneration_instruction": judge_res.regenerationInstruction,
+                })
+
+            regen_system_prompt = SYNTHESIS_SYSTEM_PROMPT + f"\n\nCRITICAL CORRECTION REQUIRED:\nYour previous output was evaluated by a safety guardrail and failed due to the following defects: {', '.join(judge_res.defects)}.\n\nCorrection instructions:\n{judge_res.regenerationInstruction}\n\nStrictly address these defects, ensuring the output is perfectly grounded in the context data, contains no advice/action language, and indirect paths match the routing exactly."
+            print(f"  [guardrail] Attempting regeneration for {ticker}...")
+            result_regen: SynthesisOut = invoke_with_retry(
+                structured_llm,
+                [SystemMessage(content=regen_system_prompt), HumanMessage(content=user_prompt)],
+                label=f"regeneration for {ticker}",
+            )
+            synthesis_regen = result_regen.model_dump()
+            synthesis_regen["summaryId"] = f"sum_{ticker}_{int(datetime_now().timestamp())}"
+            synthesis_regen["ticker"] = ticker
+            synthesis_regen["sourceEventIds"] = src_ids
+            synthesis_regen["sourceArticleUrls"] = src_urls
+            synthesis_regen["notFinancialAdvice"] = True
+            synthesis_regen["complianceDisclaimer"] = "This is an informational briefing, not financial advice. The net impact assessment is tentative and may be incomplete. Verify with market data and official sources before making decisions."
+
+            judge_res_2 = judge_synthesis_output(ticker, annotated_bucket, synthesis_regen)
+            if span and span.is_recording():
+                span.add_event("l3_output_judge", {
+                    "ticker": ticker,
+                    "passes": judge_res_2.passes,
+                    "groundingPassed": judge_res_2.groundingPassed,
+                    "advicePassed": judge_res_2.advicePassed,
+                    "pathPassed": judge_res_2.pathPassed,
+                    "defects": judge_res_2.defects,
+                })
+
+            if judge_res_2.passes:
+                print(f"  [guardrail] Regenerated output passed for {ticker}!")
+                synthesis_regen["guardrailMetadata"] = {
+                    "judgeStatus": "regenerated_passed",
+                    "judgeAttempts": 2,
+                    "judgeDefects": [],
+                    "regenerated": True,
+                    "degraded": False,
+                }
+                if span and span.is_recording():
+                    span.add_event("ticker_synthesis", {
+                        "ticker": ticker,
+                        "status": "success",
+                        "has_catalysts": True,
+                        "mode": "llm",
+                    })
+                return {"ticker_synthesis_results": [{"ticker": ticker, "synthesis": synthesis_regen, "l3Counts": counts}]}
+
+            print(f"  [guardrail] Regenerated output failed for {ticker} again. Degrading briefing.")
+            counts["degrade"] += 1
+            if span and span.is_recording():
+                span.add_event("l3_degraded", {
+                    "ticker": ticker,
+                    "reason": f"Regeneration failed: {', '.join(judge_res_2.defects)}",
+                })
+            synthesis = build_degraded_synthesis(
+                ticker,
+                f"Regeneration failed: {', '.join(judge_res_2.defects)}",
+                src_ids,
+                src_urls,
+            )
+            return {"ticker_synthesis_results": [{"ticker": ticker, "synthesis": synthesis, "l3Counts": counts}]}
+
+        except Exception as judge_exc:
+            print(f"  [guardrail] Judge execution error for {ticker}: {judge_exc}. Degrading briefing.")
+            counts["degrade"] += 1
+            if span and span.is_recording():
+                span.add_event("l3_degraded", {
+                    "ticker": ticker,
+                    "reason": f"Judge error: {str(judge_exc)}",
+                })
+            synthesis = build_degraded_synthesis(
+                ticker,
+                f"Judge error: {str(judge_exc)}",
+                src_ids,
+                src_urls,
+            )
+            return {"ticker_synthesis_results": [{"ticker": ticker, "synthesis": synthesis, "l3Counts": counts}]}
+
+    except Exception as e:
+        reason = classify_llm_failure(e, "synthesis model")
+        print(f"Error synthesizing briefing for {ticker}: {e}")
+        synthesis = {
+            "summaryId": f"sum_error_{ticker}",
+            "ticker": ticker,
+            "summaryHeadline": "Error in catalyst synthesis",
+            "situationSummary": f"No briefing was produced for {ticker}. {reason}",
+            "mainCatalysts": [],
+            "overallPossibleInfluence": "unclear",
+            "confidence": "low",
+            "uncertainties": ["System processing error."],
+            "watchItems": [],
+            "sourceEventIds": [],
+            "sourceArticleUrls": [],
+            "notFinancialAdvice": True,
+            "guardrailMetadata": {
+                "judgeStatus": "not_run_synthesis_failed",
+                "judgeAttempts": 0,
+                "judgeDefects": [reason],
+                "regenerated": False,
+                "degraded": True,
+            },
+        }
+        if span and span.is_recording():
+            span.add_event("ticker_synthesis", {
+                "ticker": ticker,
+                "status": "failed",
+                "mode": "llm",
+                "error": str(e),
+            })
+        return {"ticker_synthesis_results": [{"ticker": ticker, "synthesis": synthesis, "l3Counts": counts}]}
+
+
+def collect_ticker_syntheses(state: WorkflowState) -> Dict[str, Any]:
+    """Fan-in node: reduce branch results into the existing ticker_syntheses API shape."""
+    print("--- [Node 5c: Collect Ticker Syntheses] ---")
+    try:
+        from opentelemetry import trace as otel_trace
+        span = otel_trace.get_current_span()
+    except Exception:
+        span = None
+
+    results = state.get("ticker_synthesis_results", [])
+    if not results:
+        return {"ticker_syntheses": state.get("ticker_syntheses", {})}
+
+    by_ticker = {r["ticker"]: r["synthesis"] for r in results}
+    ticker_syntheses = {
+        ticker: by_ticker[ticker]
+        for ticker in state.get("watchlist", [])
+        if ticker in by_ticker
+    }
+    for ticker, synthesis in by_ticker.items():
+        ticker_syntheses.setdefault(ticker, synthesis)
+
+    l3_judge_fail_count = sum(r.get("l3Counts", {}).get("judge_fail", 0) for r in results)
+    l3_regeneration_count = sum(r.get("l3Counts", {}).get("regeneration", 0) for r in results)
+    l3_degrade_count = sum(r.get("l3Counts", {}).get("degrade", 0) for r in results)
+
+    if span and span.is_recording():
+        span.set_attribute("l3_judge_fail_count", l3_judge_fail_count)
+        span.set_attribute("l3_regeneration_count", l3_regeneration_count)
+        span.set_attribute("l3_degrade_count", l3_degrade_count)
+
+    return {"ticker_syntheses": ticker_syntheses}
 
 
 # 5. Per-Ticker Synthesis

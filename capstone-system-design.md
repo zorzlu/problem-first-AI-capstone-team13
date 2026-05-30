@@ -18,8 +18,9 @@ Direct company news + exposure-aware broad news
 → direct ticker routing + exposure-graph routing
 → catalyst ledger (local-embedding dedup)
 → per-ticker context buckets (+ live-ledger reconstruction)
-→ per-ticker market-impact synthesis (one LLM call per ticker)
-→ output safety judge (grounding / no-advice / path validity; regenerate once or degrade)
+→ LangGraph Send fan-out: per-ticker market-impact synthesis + output safety judge
+  (one synthesis call + one judge call per non-empty LLM ticker; regenerate once or degrade)
+→ fan-in collector
 → compliance gate (regex scrub)
 → observability traces (Arize Phoenix)
 ```
@@ -51,6 +52,7 @@ The following are the factual differences between the prior design document and 
 | 9 | Watchlist/graph persistence | implied transient | both **persisted to JSON** in `backend/state/` and reloaded on startup (`backend/persistence.py`). The catalyst ledger remains in-memory only. |
 | 10 | Iteration topology | one graph toggled by an iteration flag | three compiled graphs: Iteration 1 = direct news only, Iteration 2 = direct news + ledger dedup, Iteration 3 = query expansion + cross-impact routing |
 | 11 | Output safety guardrail | L3 judge described as proposed | the runtime synthesis path now includes `OutputSafetyJudgeOut`, a judge-regenerate-degrade loop, `guardrailMetadata`, and Phoenix L3 trace events in `backend/iterations/common.py`. |
+| 12 | Per-ticker execution shape | synthesis and judging described as one sequential node | ticker buckets are built first, then LangGraph `Send(...)` dispatches one `synthesize_one_ticker` worker per ticker; each worker runs synthesis plus judge/regenerate/degrade, and `collect_ticker_syntheses` fans results back in before compliance (`backend/iterations/common.py:877-1429`, `backend/iterations/iter1.py:66-81`, `backend/iterations/iter2.py:63-78`, `backend/iterations/iter3.py:68-83`). |
 
 ---
 
@@ -81,8 +83,8 @@ News is unstructured language; the LLM normalizes it into structured events and 
 | Direct ticker routing | Code | Source tags + watchlist |
 | Indirect impact routing | Exposure graph + code | Avoids LLM over-connection |
 | Duplicate/update decision | Catalyst ledger + local embeddings | Determinism + evalability, $0/call |
-| Per-ticker synthesis | **LLM (`get_llm`)** | Final market-impact explanation |
-| Output safety judge | **LLM (`get_llm`)** | Runtime grounding, advice, and path-validity gate |
+| Per-ticker synthesis | **LLM (`get_llm`) in LangGraph `Send` workers** | Final market-impact explanation, parallelized per ticker |
+| Output safety judge | **LLM (`get_llm`) in the same per-ticker worker** | Runtime grounding, advice, and path-validity gate before fan-in |
 | Graph expansion (setup) | **LLM (`get_llm`) + Finnhub peers** | Discover exposure surface on ticker-add |
 | Compliance | Code (regex) | Reduce advice/hallucination risk |
 
@@ -211,9 +213,9 @@ Fine-tuning adds lifecycle complexity before the architecture is proven. Autonom
 
 Each iteration is a compiled LangGraph `StateGraph` selected by `backend/iterations/__init__.py:get_workflow()`. The shared `WorkflowState` schema and step helpers live in `backend/iterations/common.py`, while `backend/iterations/iter1.py`, `iter2.py`, and `iter3.py` wire those helpers into three distinct graphs:
 
-- Iteration 1: `fetch_and_filter → extract_events → route_events → assign_catalysts → synthesize_ticker_briefings` (including the output safety judge) `→ compliance_gate`
-- Iteration 2: `fetch_and_filter → extract_events → route_events → check_ledger → synthesize_ticker_briefings` (including the output safety judge) `→ compliance_gate`
-- Iteration 3: `fetch_and_filter` with query expansion enabled, then `extract_events → route_events → check_ledger → synthesize_ticker_briefings` (including the output safety judge) `→ compliance_gate`
+- Iteration 1: `fetch_and_filter → extract_events → route_events → assign_catalysts → build_ticker_buckets → Send(synthesize_one_ticker) → collect_ticker_syntheses → compliance_gate`
+- Iteration 2: `fetch_and_filter → extract_events → route_events → check_ledger → build_ticker_buckets → Send(synthesize_one_ticker) → collect_ticker_syntheses → compliance_gate`
+- Iteration 3: `fetch_and_filter` with query expansion enabled, then `extract_events → route_events → check_ledger → build_ticker_buckets → Send(synthesize_one_ticker) → collect_ticker_syntheses → compliance_gate`
 
 `backend/main.py` does not own the graph topology itself; it loads the selected iteration workflow and invokes it per `POST /api/run`. Each node still opens an OpenTelemetry span when tracing is available.
 
@@ -234,13 +236,22 @@ Direct routing (all iterations): if a watchlist ticker is in `relatedTickers`, e
 ### Node 4 — Ledger Memory (`ledger_memory_node`, `:540-615`)
 Iteration 1 stamps all `new`. Iterations 2/3 call `check_ledger_decision` → `new|update|duplicate`; duplicates dropped + counted into `duplicate_counts`. Uses the local embedding engine. See [§7](#7-catalyst-memory).
 
-### Node 5 — Per-Ticker Synthesis (`per_ticker_synthesis_node`, `:647-1129`) — **LLM #2**
-- If `llm_failed`, short-circuits to halted-synthesis placeholders for every ticker (`:655-678`).
-- **Bucket assembly (no LLM, `:689-802`):** per ticker, gather `directEvents` + `crossImpactEvents` from this run, pulling each catalyst's **full accumulated fact history** (with per-fact `publishedAt`) from the ledger. Still-live ledger catalysts **not touched this run are reconstructed and merged back in** (`:743-795`) so briefings persist across refreshes.
-- **Recency annotation (`annotate_event_recency`, `:813-831`):** adds event-level `minutesAgo` and rewrites `hardFacts` to `[{fact, minutesAgo}]`.
-- **Model:** `get_llm()` per ticker, structured output `SynthesisOut` (`:64-72`): `summaryHeadline`, `situationSummary`, `mainCatalysts[]`, `overallPossibleInfluence`, `confidence`, `uncertainties[]`, `watchItems[]`. Each `MainCatalystOut` (`:52-61`): `eventId`, `label`, `relationshipType`, `eventType`, `possibleInfluence`, `confidence`, `recency` (breaking/recent/background), `impactPath[]`, **`significance` 1–10**.
-- **Prompt rules (`:970-1007`):** weight by recency (<30 min HIGH, 30–90 MEDIUM, >90 BACKGROUND), per-fact recency, strong vs weak path handling, no buy/sell advice.
-- **No-key mock:** rules-based synthesis (`:833-966`).
+### Node 5a — Build Ticker Buckets (`build_ticker_buckets_for_synthesis`, `backend/iterations/common.py:877-1031`)
+- If `llm_failed`, short-circuits to halted-synthesis placeholders for every ticker (`backend/iterations/common.py:904-916`).
+- **Bucket assembly (no LLM):** per ticker, gather `directEvents` + `crossImpactEvents` from this run, pulling each catalyst's **full accumulated fact history** (with per-fact `publishedAt`) from the ledger. Still-live ledger catalysts **not touched this run are reconstructed and merged back in** so briefings persist across refreshes.
+- Output: `ticker_buckets` plus an empty reducer list `ticker_synthesis_results`.
+
+### Node 5b — Parallel Per-Ticker Synthesis Worker (`dispatch_ticker_synthesis` + `synthesize_one_ticker_node`, `backend/iterations/common.py:1034-1412`) — **LLM #2 + L3 judge**
+- `dispatch_ticker_synthesis` returns LangGraph `Send("synthesize_one_ticker", ...)` calls, one per ticker bucket (`backend/iterations/common.py:1034-1048`). Each branch receives `active_synthesis_ticker` and `active_synthesis_bucket`.
+- **Recency annotation:** each worker annotates event-level `minutesAgo` and rewrites hard facts to `[{fact, minutesAgo}]` before calling the model (`backend/iterations/common.py:1051-1130`).
+- **Model:** `get_llm()` per ticker, structured output `SynthesisOut`: `summaryHeadline`, `situationSummary`, `mainCatalysts[]`, `overallPossibleInfluence`, `confidence`, `uncertainties[]`, `watchItems[]`. Each `MainCatalystOut`: `eventId`, `label`, `relationshipType`, `eventType`, `possibleInfluence`, `confidence`, `recency` (breaking/recent/background), `impactPath[]`, **`significance` 1-10**.
+- **Prompt rules:** weight by recency (<30 min HIGH, 30-90 MEDIUM, >90 BACKGROUND), per-fact recency, strong vs weak path handling, no buy/sell advice (`backend/iterations/common.py:765-805`).
+- **Output safety judge:** every non-empty LLM output is judged in the same worker; failures regenerate once, then degrade if still failing or if the judge errors (`backend/iterations/common.py:1268-1379`).
+- **No-key mock:** the worker returns rules-based synthesis and marks the judge as skipped in `guardrailMetadata`.
+- Output: each worker returns one reducer item in `ticker_synthesis_results` with the ticker, synthesis, and L3 counts.
+
+### Node 5c — Collect Ticker Syntheses (`collect_ticker_syntheses`, `backend/iterations/common.py:1415-1429`)
+The collector reads the reducer-merged `ticker_synthesis_results`, builds the final `ticker_syntheses` map, aggregates L3 judge/regeneration/degrade counts, and sends the combined output to the compliance gate.
 
 ### Node 6 — Compliance Gate (`compliance_gate_node`, `:1137-1186`)
 Regex-substitutes forbidden patterns (`\bbuy\b`→`monitor`, `\bsell\b`→`assess`, `\bshould short\b`→…, `\binvest in\b`→…, `\bwe recommend\b`→…) in headline + summary; forces `notFinancialAdvice: true`. No LLM.
@@ -251,7 +262,7 @@ Regex-substitutes forbidden patterns (`\bbuy\b`→`monitor`, `\bsell\b`→`asses
 ---
 
 ## 6. Iteration 1 — Direct company news → catalyst briefing
-Builds the spine: Finnhub company-news → freshness filter + URL dedup → batch extraction → direct ticker routing → per-ticker bucket → one synthesis call per ticker. Iteration 1 skips the ledger entirely by design (`backend/iterations/iter1.py`); no dedup, no cross-impact. Output is one ticker-level synthesis per watched ticker, backed by event-level cards. **Recommended scenario:** `direct_news`.
+Builds the spine: Finnhub company-news → freshness filter + URL dedup → batch extraction → direct ticker routing → per-ticker buckets → LangGraph `Send` workers for synthesis plus judging → fan-in collection. Iteration 1 skips the ledger entirely by design (`backend/iterations/iter1.py`); no dedup, no cross-impact. Output is one ticker-level synthesis per watched ticker, backed by event-level cards. **Recommended scenario:** `direct_news`.
 
 **Guardrails active here (the spine, see §11):** structural (constrained decoding, no-tools, deterministic routing, extraction→synthesis laundering); L0 framing (global wrapper) + freshness + URL dedup + Finnhub summary cleaning; L1 grounding prompt; L2 compliance regex + empty→"no catalysts"; **L3 mandatory output safety judge on every briefing → regenerate ×1 → fail-safe degrade**; L4 `llm_failed` fail-fast. **Evals (see §10):** L3 judge calibration, structured-output validity, direct-routing correctness (`test_iteration_1_direct_news`), faithfulness + event-type accuracy (offline).
 
@@ -391,7 +402,7 @@ Notes:
 ---
 
 ## 12. Cost, latency, performance
-Cost drivers: number of fetched articles, Currents queries, the single batched extraction call, one synthesis call per active ticker, and one runtime judge call per non-empty LLM briefing (plus one regeneration + re-judge only when L3 fails). **Dedup embeddings are not a cost driver** (local, $0/call). Latency levers: cheap code filters before LLM calls, a single batched extraction, ledger dedup + graph routing reducing synthesis calls, short structured outputs, no planning loops. Targets: 5–10 min loop, ms-to-low-seconds ledger lookups, low duplicate-card rate after Iteration 2, explicitly measured false-butterfly rate in Iteration 3, zero tolerated compliance failures in final demo output.
+Cost drivers: number of fetched articles, Currents queries, the single batched extraction call, one synthesis call per active non-empty ticker, and one runtime judge call per non-empty LLM briefing (plus one regeneration + re-judge only when L3 fails). **Dedup embeddings are not a cost driver** (local, $0/call). Latency levers: cheap code filters before LLM calls, a single batched extraction, ledger dedup + graph routing reducing synthesis calls, LangGraph `Send` fan-out for independent ticker synthesis/judge branches, short structured outputs, no planning loops. Targets: 5–10 min loop, ms-to-low-seconds ledger lookups, low duplicate-card rate after Iteration 2, explicitly measured false-butterfly rate in Iteration 3, zero tolerated compliance failures in final demo output.
 
 ---
 
@@ -414,7 +425,7 @@ Cost drivers: number of fetched articles, Currents queries, the single batched e
 | Concept | File(s) |
 |---|---|
 | FastAPI app, `/api/run`, ledger rollback, startup load | `backend/main.py` |
-| Iteration-specific LangGraph workflows, extraction/synthesis LLM calls, structured-output schemas, compliance gate | `backend/iterations/common.py`, `backend/iterations/iter1.py`, `backend/iterations/iter2.py`, `backend/iterations/iter3.py` |
+| Iteration-specific LangGraph workflows, extraction LLM call, `Send` fan-out/fan-in synthesis workers, structured-output schemas, compliance gate | `backend/iterations/common.py`, `backend/iterations/iter1.py`, `backend/iterations/iter2.py`, `backend/iterations/iter3.py` |
 | LLM/Phoenix config, `get_llm` / `get_llm_fast` | `backend/config.py` |
 | Finnhub/Currents clients, scenario replay, freshness filter | `backend/ingestion.py` |
 | Exposure graph store, query expansion, path traversal + scoring | `backend/routing.py` |

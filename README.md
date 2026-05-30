@@ -36,9 +36,11 @@ Route Events to Tickers     (direct tag routing)
         ↓
 Assign Catalyst IDs         (no ledger in Iteration 1)
         ↓
-Per-Ticker Synthesis        (LLM: gpt-4o-mini / gemini-2.5-flash)
+Build Ticker Buckets
         ↓
-Output Safety Judge         (LLM: grounding + no-advice + path check)
+Parallel Per-Ticker Workers (LangGraph Send: synthesis LLM + output safety judge)
+        ↓
+Collect Ticker Syntheses
         ↓
 Compliance Gate             (regex scrub of buy/sell language)
 
@@ -51,9 +53,11 @@ Route Events to Tickers     (direct tag routing)
         ↓
 Ledger Memory Check         (local embeddings / lexical fallback)
         ↓
-Per-Ticker Synthesis        (LLM: gpt-4o-mini / gemini-2.5-flash)
+Build Ticker Buckets
         ↓
-Output Safety Judge         (LLM: grounding + no-advice + path check)
+Parallel Per-Ticker Workers (LangGraph Send: synthesis LLM + output safety judge)
+        ↓
+Collect Ticker Syntheses
         ↓
 Compliance Gate             (regex scrub of buy/sell language)
 
@@ -66,9 +70,11 @@ Route Events to Tickers     (direct tag + exposure graph traversal)
         ↓
 Ledger Memory Check         (local embeddings / lexical fallback)
         ↓
-Per-Ticker Synthesis        (LLM: gpt-4o-mini / gemini-2.5-flash)
+Build Ticker Buckets
         ↓
-Output Safety Judge         (LLM: grounding + no-advice + path check)
+Parallel Per-Ticker Workers (LangGraph Send: synthesis LLM + output safety judge)
+        ↓
+Collect Ticker Syntheses
         ↓
 Compliance Gate             (regex scrub of buy/sell language)
 ```
@@ -77,7 +83,7 @@ Compliance Gate             (regex scrub of buy/sell language)
 
 ### Output guardrails
 
-Every non-empty LLM synthesis is checked by a structured output safety judge before the regex compliance gate. The judge verifies that claims are grounded in the ticker bucket, that the briefing contains no trading advice/action language, and that indirect catalyst explanations stay inside the routed `impactPath` and `reasonForRouting`. If the judge fails, the backend regenerates that ticker's synthesis once with the defects named; if the regenerated output still fails or the judge errors, the briefing is degraded to **Briefing suppressed pending verification** with no main catalysts. The API response includes `guardrailMetadata`, and the ticker detail view shows a badge such as `Verified`, `Regenerated after guardrail`, or `Suppressed pending verification`.
+Every non-empty LLM synthesis is checked by a structured output safety judge before the regex compliance gate. The synthesis and judge run inside a per-ticker LangGraph worker branch dispatched with `Send(...)`, so different tickers can be synthesized and judged independently before the collector node merges the results. The judge verifies that claims are grounded in the ticker bucket, that the briefing contains no trading advice/action language, and that indirect catalyst explanations stay inside the routed `impactPath` and `reasonForRouting`. If the judge fails, the backend regenerates that ticker's synthesis once with the defects named; if the regenerated output still fails or the judge errors, the briefing is degraded to **Briefing suppressed pending verification** with no main catalysts. The API response includes `guardrailMetadata`, and the ticker detail view shows a badge such as `Verified`, `Regenerated after guardrail`, or `Suppressed pending verification`.
 
 ### Exposure-graph expansion (separate from the run pipeline)
 
@@ -330,7 +336,7 @@ Select the iteration and scenario from the header dropdowns, then click **Fetch 
 - Uses `backend/iterations/iter1.py`.
 - Fetches news articles tagged with watchlist ticker symbols.
 - Extracts structured canonical events via LLM (or mock).
-- Synthesizes a briefing for each ticker that has direct news, then verifies it with the output safety judge when LLM keys are configured.
+- Builds ticker buckets, then dispatches one LangGraph worker branch per ticker for synthesis and output-safety judging when LLM keys are configured.
 - No deduplication, no cross-impact routing.
 
 **Recommended scenario:** `Replay Scenario 1: Direct Announcements`  
@@ -399,7 +405,7 @@ problem-first-AI-capstone-team13/
 │   ├── persistence.py        # JSON file persistence for watchlist + graph + run results
 │   ├── iterations/
 │   │   ├── __init__.py       # Iteration selector/cacher for compiled LangGraph apps
-│   │   ├── common.py         # Shared schemas, prompts, step helpers, and output safety judge
+│   │   ├── common.py         # Shared schemas, prompts, Send fan-out helpers, and output safety judge
 │   │   ├── iter1.py          # Direct-news workflow
 │   │   ├── iter2.py          # Direct-news + catalyst memory workflow
 │   │   └── iter3.py          # Cross-impact workflow with graph expansion inputs
