@@ -59,6 +59,7 @@ def startup_event():
     init_phoenix()
     _watchlist = load_watchlist(default=_watchlist)
     set_graph(load_graph(default=get_graph()))
+    save_graph(get_graph())
     # Load run results and convert string keys from JSON back to integers
     loaded = load_run_results()
     _run_results = {}

@@ -1,4 +1,4 @@
-from typing import List, Dict, Any, Set
+from typing import List, Dict, Any, Set, Optional
 import copy
 import re
 from backend.seed_data import EXPOSURE_GRAPH
@@ -33,12 +33,76 @@ def _is_match(event_term: str, node_text: str) -> bool:
 # In-memory storage for exposure graph, initialized with seed data
 _graph_store = copy.deepcopy(EXPOSURE_GRAPH)
 
+
+def _infer_ticker_from_node(node: Dict[str, Any]) -> str:
+    ticker = node.get("ticker")
+    if isinstance(ticker, str) and ticker.strip():
+        return ticker.strip().upper()
+
+    node_id = node.get("nodeId", "")
+    if node_id.startswith("ticker_"):
+        suffix = node_id.replace("ticker_", "", 1).strip().upper()
+        if suffix and re.fullmatch(r"[A-Z][A-Z0-9.\-]{0,9}", suffix):
+            return suffix
+
+    return ""
+
+
+def _merge_unique(*lists):
+    merged = []
+    seen = set()
+    for values in lists:
+        for value in values or []:
+            if value is None:
+                continue
+            key = str(value).strip()
+            if not key or key.lower() in seen:
+                continue
+            merged.append(key)
+            seen.add(key.lower())
+    return merged
+
+
+def normalize_graph(graph: Dict[str, Any], watchlist: Optional[List[str]] = None) -> Dict[str, Any]:
+    """Normalize graph shape after load/LLM/manual edits.
+
+    Public companies with tickers are first-class ticker nodes. Private/non-public actors
+    such as OpenAI, Mistral, Claude, Anthropic, and Reflection AI stay private_company
+    nodes. Region/country/policy nodes are kept as macro nodes for directional traversal.
+    """
+    watch = {t.strip().upper() for t in watchlist or [] if isinstance(t, str)}
+    normalized = copy.deepcopy(graph or {"nodes": [], "edges": []})
+    nodes = []
+
+    for node in normalized.get("nodes", []):
+        node = dict(node)
+        node_type = node.get("nodeType")
+        ticker = _infer_ticker_from_node(node)
+
+        if ticker and (node_type in {"ticker", "private_company"} or ticker in watch):
+            node["nodeType"] = "ticker"
+            node["ticker"] = ticker
+            node["aliases"] = _merge_unique(node.get("aliases", []), [ticker])
+            node["queryTerms"] = _merge_unique(node.get("queryTerms", []), [ticker])
+            if node.get("name") == ticker and len(node.get("aliases", [])) > 1:
+                node["name"] = next((a for a in node["aliases"] if a.upper() != ticker), node["name"])
+        elif node_type == "ticker":
+            # A ticker node without a ticker is unusable as a query/routing root; demote only
+            # if no symbol can be inferred.
+            node["nodeType"] = "private_company"
+
+        nodes.append(node)
+
+    normalized["nodes"] = nodes
+    return normalized
+
 def get_graph() -> Dict[str, Any]:
     """Returns the current state of the exposure graph."""
     return _graph_store
 
 def add_graph_node(node: Dict[str, Any]):
     """Adds or updates a node in the exposure graph."""
+    node = normalize_graph({"nodes": [node], "edges": []})["nodes"][0]
     # Ensure node has required fields
     node_id = node.get("nodeId")
     if not node_id:
@@ -64,15 +128,97 @@ def add_graph_edge(edge: Dict[str, Any]):
 
 def set_graph(graph: Dict[str, Any]):
     global _graph_store
-    _graph_store = graph
+    _graph_store = normalize_graph(graph)
 
 def reset_graph() -> Dict[str, Any]:
     """Restores the exposure graph to the curated seed, discarding all runtime additions."""
     global _graph_store
-    _graph_store = copy.deepcopy(EXPOSURE_GRAPH)
+    _graph_store = normalize_graph(copy.deepcopy(EXPOSURE_GRAPH))
     return _graph_store
 
 from typing import Tuple
+
+_FETCH_NOISE_TERMS = {
+    "ai", "ml", "us", "usa", "eu", "ce", "prc", "app", "mac", "core", "arc",
+    "power", "water", "energy", "coffee", "pizza", "taco", "hamburgers",
+    "cafe", "chips", "silicon", "electronics", "gaming", "esports",
+    "video games", "wearables", "android", "iphone", "ipad", "airpods",
+    "apple", "google", "amazon", "microsoft", "nvidia", "delta",
+    "united states", "europe", "china", "taiwan", "consumer spending",
+    "consumer demand", "cloud computing", "cloud services", "data centers",
+    "data center", "artificial intelligence", "semiconductor",
+}
+
+_HIGH_SIGNAL_ONE_WORD_TERMS = {
+    "openai", "anthropic", "mistral", "chatgpt", "claude", "blackwell",
+}
+
+_HIGH_SIGNAL_PHRASES = (
+    "export control", "chip export", "tariff", "sanction", "antitrust",
+    "regulation", "regulatory", "lawsuit", "probe", "investigation",
+    "defense spending", "pentagon", "department of defense", "dod",
+    "red sea", "suez", "bab el-mandeb", "freight rates", "shipping cost",
+    "jet fuel", "oil price", "interest rates", "federal reserve",
+    "ai model", "large language model", "frontier ai", "ai data center",
+    "ai infrastructure", "gpu cluster", "benchmark", "claude model",
+    "gpt-5", "sora", "nvidia-backed", "reflection ai",
+    "taiwan strait", "earthquake", "foundry evacuation",
+)
+
+
+def _clean_fetch_term(term: str) -> str:
+    return re.sub(r"\s+", " ", str(term or "").strip())
+
+
+def _is_fetchable_cross_impact_term(term: str, node: Dict[str, Any], watchlist: Set[str]) -> bool:
+    term = _clean_fetch_term(term)
+    if not term:
+        return False
+
+    lower = term.lower()
+    if lower in _FETCH_NOISE_TERMS:
+        return False
+    if term.upper() in watchlist:
+        return False
+    if re.fullmatch(r"[A-Z]{1,5}", term):
+        return False
+
+    node_type = node.get("nodeType")
+    if node_type == "ticker":
+        # Ticker/company direct news comes from Finnhub, not broad Currents search.
+        return False
+
+    words = re.findall(r"[A-Za-z0-9$.-]+", term)
+    if len(words) <= 1:
+        return lower in _HIGH_SIGNAL_ONE_WORD_TERMS
+
+    if len(term) > 70:
+        return False
+
+    if any(phrase in lower for phrase in _HIGH_SIGNAL_PHRASES):
+        return True
+
+    # Keep named private actors and specific policy/technology phrases, drop broad nouns.
+    if node_type in {"private_company", "government_agency"} and len(words) <= 4:
+        return True
+    if node_type in {"policy_area", "shipping_route", "technology_theme", "commodity"} and len(words) >= 2:
+        return True
+
+    return False
+
+
+def _rank_fetch_term(term: str) -> Tuple[int, int, str]:
+    lower = term.lower()
+    score = 0
+    if any(phrase in lower for phrase in _HIGH_SIGNAL_PHRASES):
+        score += 20
+    if any(token in lower for token in ("export", "antitrust", "tariff", "lawsuit", "probe", "red sea", "federal reserve", "pentagon", "benchmark", "data center")):
+        score += 10
+    word_count = len(term.split())
+    if 2 <= word_count <= 4:
+        score += 5
+    return (-score, len(term), term.lower())
+
 
 def get_cross_impact_queries(watchlist: List[str]) -> Tuple[List[str], List[str]]:
     """
@@ -117,15 +263,21 @@ def get_cross_impact_queries(watchlist: List[str]) -> Tuple[List[str], List[str]
             
     relevant_nodes.update(neighbors_2)
     
-    # Collect query terms and extra tickers
+    # Collect query terms and extra tickers. Broad graph aliases are useful for routing, but
+    # terrible as live-news search terms; keep Currents focused on specific catalysts.
     keywords = set()
     extra_tickers = set()
+    watchlist_symbols = {t.upper() for t in watchlist}
     for node_id in relevant_nodes:
         node = nodes[node_id]
-        # Include company name, aliases, and query terms to search Currents by name
-        keywords.update(node.get("queryTerms", []))
-        keywords.add(node["name"])
-        keywords.update(node.get("aliases", []))
+        terms = list(node.get("queryTerms", []))
+        if node.get("nodeType") in {"private_company", "government_agency", "policy_area", "shipping_route", "technology_theme", "commodity"}:
+            terms.append(node.get("name", ""))
+            terms.extend(node.get("aliases", []))
+        for term in terms:
+            cleaned = _clean_fetch_term(term)
+            if _is_fetchable_cross_impact_term(cleaned, node, watchlist_symbols):
+                keywords.add(cleaned)
         
         # If this node represents a company with a ticker and is not on the watchlist,
         # collect its ticker to query Finnhub
@@ -133,7 +285,7 @@ def get_cross_impact_queries(watchlist: List[str]) -> Tuple[List[str], List[str]
         if node_ticker and node_ticker not in watchlist:
             extra_tickers.add(node_ticker)
             
-    return list(keywords), list(extra_tickers)
+    return sorted(keywords, key=_rank_fetch_term)[:35], sorted(extra_tickers)
 
 
 def get_cross_impact_keywords(watchlist: List[str]) -> List[str]:
@@ -165,7 +317,8 @@ def find_paths_to_watchlist(start_node_id: str, watchlist_node_ids: Set[str], ma
         # If it is an exposure/sensitivity edge:
         if edge.get("edgeType") in {
             "regional_exposure", "technology_exposure", "shipping_exposure", 
-            "macro_sensitivity", "sector_exposure", "commodity_exposure"
+            "macro_sensitivity", "policy_exposure", "defense_exposure",
+            "trade_exposure", "sector_exposure", "commodity_exposure"
         }:
             is_c_company = c_type in company_types
             is_n_company = n_type in company_types
@@ -235,11 +388,12 @@ def route_cross_impact(canonical_event: Dict[str, Any], watchlist: List[str]) ->
     
     # Search fields in canonical event
     event_entities = [e.lower() for e in canonical_event.get("entities", [])]
+    event_tickers = [t.lower() for t in canonical_event.get("mentionedTickers", [])]
     event_tags = [t.lower() for t in canonical_event.get("eventTags", [])]
     event_regions = [r.lower() for r in canonical_event.get("regions", []) or []]
     event_themes = [t.lower() for t in canonical_event.get("technologyThemes", []) or []]
     
-    event_terms = set(event_entities + event_tags + event_regions + event_themes)
+    event_terms = set(event_tickers + event_entities + event_tags + event_regions + event_themes)
     
     # Check node match using word-boundary and stem matching
     for node_id, node in nodes.items():
@@ -336,4 +490,3 @@ def route_cross_impact(canonical_event: Dict[str, Any], watchlist: List[str]) ->
             best_candidates[key] = cand
             
     return list(best_candidates.values())
-

@@ -3,29 +3,33 @@
     {
       "nodeId": "ticker_TSM",
       "nodeType": "ticker",
-      "name": "TSM",
+      "name": "TSMC",
       "aliases": [
         "TSMC",
-        "Taiwan Semiconductor Manufacturing"
+        "Taiwan Semiconductor Manufacturing",
+        "TSM"
       ],
       "queryTerms": [
         "TSMC",
         "TSM",
         "Taiwan Semiconductor"
-      ]
+      ],
+      "ticker": "TSM"
     },
     {
       "nodeId": "ticker_DAL",
       "nodeType": "ticker",
-      "name": "DAL",
+      "name": "Delta Air Lines",
       "aliases": [
         "Delta Air Lines",
-        "Delta"
+        "Delta",
+        "DAL"
       ],
       "queryTerms": [
         "Delta Air Lines",
         "DAL"
-      ]
+      ],
+      "ticker": "DAL"
     },
     {
       "nodeId": "supplier_Foxconn",
@@ -135,10 +139,11 @@
     {
       "nodeId": "ticker_AAPL",
       "nodeType": "ticker",
-      "name": "AAPL",
+      "name": "Apple Inc.",
       "aliases": [
         "Apple Inc.",
-        "Apple"
+        "Apple",
+        "AAPL"
       ],
       "queryTerms": [
         "Apple Inc.",
@@ -150,7 +155,8 @@
         "AirPods",
         "Apple Services",
         "Tim Cook"
-      ]
+      ],
+      "ticker": "AAPL"
     },
     {
       "nodeId": "private_company_Samsung_Electronics",
@@ -318,14 +324,16 @@
       "name": "Amazon.com Inc.",
       "aliases": [
         "Amazon",
-        "AWS"
+        "AWS",
+        "AMZN"
       ],
       "queryTerms": [
         "Amazon",
         "AMZN",
         "AWS",
         "Amazon Web Services"
-      ]
+      ],
+      "ticker": "AMZN"
     },
     {
       "nodeId": "ticker_GOOG",
@@ -333,7 +341,8 @@
       "name": "Alphabet Inc.",
       "aliases": [
         "Google",
-        "Alphabet"
+        "Alphabet",
+        "GOOG"
       ],
       "queryTerms": [
         "Google",
@@ -341,20 +350,23 @@
         "Alphabet",
         "Google Cloud",
         "Google Workspace"
-      ]
+      ],
+      "ticker": "GOOG"
     },
     {
       "nodeId": "ticker_ORCL",
       "nodeType": "ticker",
       "name": "Oracle Corporation",
       "aliases": [
-        "Oracle"
+        "Oracle",
+        "ORCL"
       ],
       "queryTerms": [
         "Oracle",
         "ORCL",
         "Oracle Cloud"
-      ]
+      ],
+      "ticker": "ORCL"
     },
     {
       "nodeId": "ticker_SONY",
@@ -365,9 +377,9 @@
       ],
       "queryTerms": [
         "Sony",
-        "SONY",
         "PlayStation"
-      ]
+      ],
+      "ticker": "SONY"
     },
     {
       "nodeId": "theme_cloud_computing",
@@ -453,10 +465,13 @@
       "nodeId": "ticker_MSFT",
       "nodeType": "ticker",
       "name": "MSFT",
-      "aliases": [],
+      "aliases": [
+        "MSFT"
+      ],
       "queryTerms": [
         "MSFT"
-      ]
+      ],
+      "ticker": "MSFT"
     },
     {
       "nodeId": "ticker_AMD",
@@ -472,14 +487,16 @@
         "Radeon",
         "EPYC",
         "Instinct"
-      ]
+      ],
+      "ticker": "AMD"
     },
     {
       "nodeId": "ticker_INTC",
       "nodeType": "ticker",
       "name": "Intel Corporation",
       "aliases": [
-        "Intel"
+        "Intel",
+        "INTC"
       ],
       "queryTerms": [
         "Intel",
@@ -487,8 +504,10 @@
         "Xeon",
         "Core",
         "Gaudi",
-        "Arc"
-      ]
+        "Arc",
+        "INTC"
+      ],
+      "ticker": "INTC"
     },
     {
       "nodeId": "private_company_SK_Hynix",
@@ -579,10 +598,13 @@
       "nodeId": "ticker_NVDA",
       "nodeType": "ticker",
       "name": "NVDA",
-      "aliases": [],
+      "aliases": [
+        "NVDA"
+      ],
       "queryTerms": [
         "NVDA"
-      ]
+      ],
+      "ticker": "NVDA"
     },
     {
       "nodeId": "risk_geopolitical_tensions_china",
@@ -607,7 +629,8 @@
       "ticker": "MCD",
       "aliases": [
         "McDonald's",
-        "Mickey D's"
+        "Mickey D's",
+        "MCD"
       ],
       "queryTerms": [
         "McDonald's Corporation",
@@ -619,11 +642,12 @@
     },
     {
       "nodeId": "private_company_DASH",
-      "nodeType": "private_company",
+      "nodeType": "ticker",
       "name": "DoorDash, Inc.",
       "ticker": "DASH",
       "aliases": [
-        "DoorDash"
+        "DoorDash",
+        "DASH"
       ],
       "queryTerms": [
         "DoorDash, Inc.",
@@ -633,11 +657,12 @@
     },
     {
       "nodeId": "private_company_YUM",
-      "nodeType": "private_company",
+      "nodeType": "ticker",
       "name": "Yum! Brands, Inc.",
       "ticker": "YUM",
       "aliases": [
-        "Yum Brands"
+        "Yum Brands",
+        "YUM"
       ],
       "queryTerms": [
         "Yum! Brands, Inc.",
@@ -649,11 +674,12 @@
     },
     {
       "nodeId": "private_company_CMG",
-      "nodeType": "private_company",
+      "nodeType": "ticker",
       "name": "Chipotle Mexican Grill, Inc.",
       "ticker": "CMG",
       "aliases": [
-        "Chipotle"
+        "Chipotle",
+        "CMG"
       ],
       "queryTerms": [
         "Chipotle Mexican Grill, Inc.",
@@ -663,11 +689,12 @@
     },
     {
       "nodeId": "private_company_QSR",
-      "nodeType": "private_company",
+      "nodeType": "ticker",
       "name": "Restaurant Brands International Inc.",
       "ticker": "QSR",
       "aliases": [
-        "Restaurant Brands"
+        "Restaurant Brands",
+        "QSR"
       ],
       "queryTerms": [
         "Restaurant Brands International Inc.",
@@ -677,11 +704,12 @@
     },
     {
       "nodeId": "private_company_DRI",
-      "nodeType": "private_company",
+      "nodeType": "ticker",
       "name": "Darden Restaurants, Inc.",
       "ticker": "DRI",
       "aliases": [
-        "Darden"
+        "Darden",
+        "DRI"
       ],
       "queryTerms": [
         "Darden Restaurants, Inc.",
@@ -704,11 +732,12 @@
     },
     {
       "nodeId": "private_company_TXRH",
-      "nodeType": "private_company",
+      "nodeType": "ticker",
       "name": "Texas Roadhouse, Inc.",
       "ticker": "TXRH",
       "aliases": [
-        "Texas Roadhouse"
+        "Texas Roadhouse",
+        "TXRH"
       ],
       "queryTerms": [
         "Texas Roadhouse, Inc.",
@@ -718,11 +747,12 @@
     },
     {
       "nodeId": "private_company_DPZ",
-      "nodeType": "private_company",
+      "nodeType": "ticker",
       "name": "Domino's Pizza, Inc.",
       "ticker": "DPZ",
       "aliases": [
-        "Domino's"
+        "Domino's",
+        "DPZ"
       ],
       "queryTerms": [
         "Domino's Pizza, Inc.",
@@ -758,11 +788,12 @@
     },
     {
       "nodeId": "private_company_SBUX",
-      "nodeType": "private_company",
+      "nodeType": "ticker",
       "name": "Starbucks Corporation",
       "ticker": "SBUX",
       "aliases": [
-        "Starbucks"
+        "Starbucks",
+        "SBUX"
       ],
       "queryTerms": [
         "coffee shops",
@@ -876,7 +907,8 @@
       "nodeType": "ticker",
       "name": "Salesforce Inc.",
       "aliases": [
-        "Salesforce"
+        "Salesforce",
+        "CRM"
       ],
       "queryTerms": [
         "CRM",
@@ -892,7 +924,8 @@
       "name": "AppLovin Corporation",
       "ticker": "APP",
       "aliases": [
-        "AppLovin"
+        "AppLovin",
+        "APP"
       ],
       "queryTerms": [
         "AppLovin Corporation",
@@ -903,11 +936,12 @@
     },
     {
       "nodeId": "private_company_PLTR",
-      "nodeType": "private_company",
+      "nodeType": "ticker",
       "name": "Palantir Technologies Inc.",
       "ticker": "PLTR",
       "aliases": [
-        "Palantir"
+        "Palantir",
+        "PLTR"
       ],
       "queryTerms": [
         "Palantir Technologies",
@@ -917,11 +951,12 @@
     },
     {
       "nodeId": "private_company_ADBE",
-      "nodeType": "private_company",
+      "nodeType": "ticker",
       "name": "Adobe Inc.",
       "ticker": "ADBE",
       "aliases": [
-        "Adobe"
+        "Adobe",
+        "ADBE"
       ],
       "queryTerms": [
         "Adobe",
@@ -931,11 +966,12 @@
     },
     {
       "nodeId": "private_company_CDNS",
-      "nodeType": "private_company",
+      "nodeType": "ticker",
       "name": "Cadence Design Systems, Inc.",
       "ticker": "CDNS",
       "aliases": [
-        "Cadence"
+        "Cadence",
+        "CDNS"
       ],
       "queryTerms": [
         "Cadence Design Systems",
@@ -945,11 +981,12 @@
     },
     {
       "nodeId": "private_company_SNPS",
-      "nodeType": "private_company",
+      "nodeType": "ticker",
       "name": "Synopsys, Inc.",
       "ticker": "SNPS",
       "aliases": [
-        "Synopsys"
+        "Synopsys",
+        "SNPS"
       ],
       "queryTerms": [
         "Synopsys",
@@ -959,11 +996,12 @@
     },
     {
       "nodeId": "private_company_INTU",
-      "nodeType": "private_company",
+      "nodeType": "ticker",
       "name": "Intuit Inc.",
       "ticker": "INTU",
       "aliases": [
-        "Intuit"
+        "Intuit",
+        "INTU"
       ],
       "queryTerms": [
         "Intuit",
@@ -973,11 +1011,12 @@
     },
     {
       "nodeId": "private_company_DDOG",
-      "nodeType": "private_company",
+      "nodeType": "ticker",
       "name": "Datadog, Inc.",
       "ticker": "DDOG",
       "aliases": [
-        "Datadog"
+        "Datadog",
+        "DDOG"
       ],
       "queryTerms": [
         "Datadog",
@@ -987,11 +1026,12 @@
     },
     {
       "nodeId": "private_company_MSTR",
-      "nodeType": "private_company",
+      "nodeType": "ticker",
       "name": "MicroStrategy Incorporated",
       "ticker": "MSTR",
       "aliases": [
-        "MicroStrategy"
+        "MicroStrategy",
+        "MSTR"
       ],
       "queryTerms": [
         "MicroStrategy",
@@ -1001,11 +1041,12 @@
     },
     {
       "nodeId": "private_company_ADSK",
-      "nodeType": "private_company",
+      "nodeType": "ticker",
       "name": "Autodesk, Inc.",
       "ticker": "ADSK",
       "aliases": [
-        "Autodesk"
+        "Autodesk",
+        "ADSK"
       ],
       "queryTerms": [
         "Autodesk",
@@ -2114,6 +2155,226 @@
       "sourceType": "llm_generated",
       "notes": "Autodesk may collaborate with AppLovin on design and marketing software.",
       "lastReviewedAt": "2026-05-29"
+    },
+    {
+      "fromNodeId": "ticker_APP",
+      "toNodeId": "private_company_PLTR",
+      "edgeType": "competitor_of",
+      "strength": "high",
+      "confidence": 0.9,
+      "sourceType": "llm_generated",
+      "notes": "AppLovin competes with Palantir in the data analytics and AI-driven marketing space.",
+      "lastReviewedAt": "2026-05-30"
+    },
+    {
+      "fromNodeId": "ticker_APP",
+      "toNodeId": "private_company_ADBE",
+      "edgeType": "competitor_of",
+      "strength": "high",
+      "confidence": 0.8,
+      "sourceType": "llm_generated",
+      "notes": "AppLovin competes with Adobe in digital marketing and creative software solutions.",
+      "lastReviewedAt": "2026-05-30"
+    },
+    {
+      "fromNodeId": "ticker_APP",
+      "toNodeId": "private_company_CDNS",
+      "edgeType": "competitor_of",
+      "strength": "medium",
+      "confidence": 0.6,
+      "sourceType": "llm_generated",
+      "notes": "AppLovin and Cadence Design Systems may overlap in certain software solutions for app development.",
+      "lastReviewedAt": "2026-05-30"
+    },
+    {
+      "fromNodeId": "ticker_APP",
+      "toNodeId": "private_company_SNPS",
+      "edgeType": "competitor_of",
+      "strength": "medium",
+      "confidence": 0.6,
+      "sourceType": "llm_generated",
+      "notes": "AppLovin and Synopsys may compete in software tools for app development.",
+      "lastReviewedAt": "2026-05-30"
+    },
+    {
+      "fromNodeId": "ticker_APP",
+      "toNodeId": "private_company_INTU",
+      "edgeType": "competitor_of",
+      "strength": "medium",
+      "confidence": 0.5,
+      "sourceType": "llm_generated",
+      "notes": "AppLovin may compete with Intuit in financial software for app developers.",
+      "lastReviewedAt": "2026-05-30"
+    },
+    {
+      "fromNodeId": "ticker_APP",
+      "toNodeId": "private_company_DDOG",
+      "edgeType": "competitor_of",
+      "strength": "medium",
+      "confidence": 0.5,
+      "sourceType": "llm_generated",
+      "notes": "AppLovin and Datadog may overlap in analytics and monitoring solutions for applications.",
+      "lastReviewedAt": "2026-05-30"
+    },
+    {
+      "fromNodeId": "ticker_APP",
+      "toNodeId": "private_company_MSTR",
+      "edgeType": "competitor_of",
+      "strength": "medium",
+      "confidence": 0.5,
+      "sourceType": "llm_generated",
+      "notes": "AppLovin and MicroStrategy may compete in business intelligence and analytics.",
+      "lastReviewedAt": "2026-05-30"
+    },
+    {
+      "fromNodeId": "ticker_APP",
+      "toNodeId": "private_company_ADSK",
+      "edgeType": "competitor_of",
+      "strength": "medium",
+      "confidence": 0.5,
+      "sourceType": "llm_generated",
+      "notes": "AppLovin may compete with Autodesk in creative software for app development.",
+      "lastReviewedAt": "2026-05-30"
+    },
+    {
+      "fromNodeId": "private_company_DASH",
+      "toNodeId": "ticker_MCD",
+      "edgeType": "customer_of",
+      "strength": "medium",
+      "confidence": 0.6,
+      "sourceType": "llm_generated",
+      "notes": "DoorDash provides delivery services for McDonald's, making it a customer.",
+      "lastReviewedAt": "2026-05-30"
+    },
+    {
+      "fromNodeId": "private_company_YUM",
+      "toNodeId": "ticker_MCD",
+      "edgeType": "competitor_of",
+      "strength": "high",
+      "confidence": 0.9,
+      "sourceType": "llm_generated",
+      "notes": "Yum! Brands operates several fast-food chains that compete with McDonald's.",
+      "lastReviewedAt": "2026-05-30"
+    },
+    {
+      "fromNodeId": "private_company_CMG",
+      "toNodeId": "ticker_MCD",
+      "edgeType": "competitor_of",
+      "strength": "medium",
+      "confidence": 0.6,
+      "sourceType": "llm_generated",
+      "notes": "Chipotle competes with McDonald's in the fast-casual dining segment.",
+      "lastReviewedAt": "2026-05-30"
+    },
+    {
+      "fromNodeId": "private_company_QSR",
+      "toNodeId": "ticker_MCD",
+      "edgeType": "competitor_of",
+      "strength": "high",
+      "confidence": 0.9,
+      "sourceType": "llm_generated",
+      "notes": "Restaurant Brands International owns several fast-food brands that compete with McDonald's.",
+      "lastReviewedAt": "2026-05-30"
+    },
+    {
+      "fromNodeId": "private_company_DRI",
+      "toNodeId": "ticker_MCD",
+      "edgeType": "competitor_of",
+      "strength": "medium",
+      "confidence": 0.5,
+      "sourceType": "llm_generated",
+      "notes": "Darden Restaurants operates casual dining restaurants that may compete for the same customer base.",
+      "lastReviewedAt": "2026-05-30"
+    },
+    {
+      "fromNodeId": "private_company_ARMK",
+      "toNodeId": "ticker_MCD",
+      "edgeType": "partner_of",
+      "strength": "low",
+      "confidence": 0.4,
+      "sourceType": "llm_generated",
+      "notes": "Aramark provides food services that may include partnerships with McDonald's.",
+      "lastReviewedAt": "2026-05-30"
+    },
+    {
+      "fromNodeId": "private_company_TXRH",
+      "toNodeId": "ticker_MCD",
+      "edgeType": "competitor_of",
+      "strength": "low",
+      "confidence": 0.4,
+      "sourceType": "llm_generated",
+      "notes": "Texas Roadhouse competes in the broader dining market.",
+      "lastReviewedAt": "2026-05-30"
+    },
+    {
+      "fromNodeId": "private_company_DPZ",
+      "toNodeId": "ticker_MCD",
+      "edgeType": "competitor_of",
+      "strength": "medium",
+      "confidence": 0.6,
+      "sourceType": "llm_generated",
+      "notes": "Domino's Pizza competes with McDonald's in the fast-food pizza segment.",
+      "lastReviewedAt": "2026-05-30"
+    },
+    {
+      "fromNodeId": "private_company_BROS",
+      "toNodeId": "ticker_MCD",
+      "edgeType": "competitor_of",
+      "strength": "low",
+      "confidence": 0.3,
+      "sourceType": "llm_generated",
+      "notes": "Dutch Bros competes in the beverage market, which overlaps with McDonald's offerings.",
+      "lastReviewedAt": "2026-05-30"
+    },
+    {
+      "fromNodeId": "private_company_CAVA",
+      "toNodeId": "ticker_MCD",
+      "edgeType": "competitor_of",
+      "strength": "low",
+      "confidence": 0.3,
+      "sourceType": "llm_generated",
+      "notes": "Cava competes in the fast-casual dining segment, which may overlap with McDonald's.",
+      "lastReviewedAt": "2026-05-30"
+    },
+    {
+      "fromNodeId": "region_United_States",
+      "toNodeId": "ticker_MCD",
+      "edgeType": "regional_exposure",
+      "strength": "high",
+      "confidence": 0.9,
+      "sourceType": "llm_generated",
+      "notes": "McDonald's has a significant presence in the United States market.",
+      "lastReviewedAt": "2026-05-30"
+    },
+    {
+      "fromNodeId": "risk_consumer_spending",
+      "toNodeId": "ticker_MCD",
+      "edgeType": "macro_sensitivity",
+      "strength": "high",
+      "confidence": 0.8,
+      "sourceType": "llm_generated",
+      "notes": "Consumer spending trends directly impact McDonald's sales.",
+      "lastReviewedAt": "2026-05-30"
+    },
+    {
+      "fromNodeId": "risk_interest_rates",
+      "toNodeId": "ticker_MCD",
+      "edgeType": "macro_sensitivity",
+      "strength": "medium",
+      "confidence": 0.6,
+      "sourceType": "llm_generated",
+      "notes": "Changes in interest rates can affect consumer spending and, consequently, McDonald's revenue.",
+      "lastReviewedAt": "2026-05-30"
+    },
+    {
+      "fromNodeId": "risk_logistics_cost",
+      "toNodeId": "ticker_MCD",
+      "edgeType": "macro_sensitivity",
+      "strength": "high",
+      "confidence": 0.7,
+      "sourceType": "llm_generated",
+      "notes": "Logistics costs impact the supply chain and operational costs for McDonald's.",
+      "lastReviewedAt": "2026-05-30"
     }
   ]
 }

@@ -8,7 +8,14 @@ import unittest
 from unittest.mock import patch, MagicMock
 
 from backend.iterations import get_workflow
-from backend.iterations.common import ExtractionResult, SynthesisOut, OutputSafetyJudgeOut
+from backend.iterations.common import (
+    ExtractionResult,
+    SynthesisOut,
+    OutputSafetyJudgeOut,
+    _normalize_synthesis_significance,
+    _postprocess_synthesis,
+    _relax_language_only_judge_failure,
+)
 from backend.seed_data import SCENARIOS, EXPOSURE_GRAPH
 from backend.memory import clear_ledger
 
@@ -80,6 +87,43 @@ class TestWorkflow(unittest.TestCase):
                     "possibleDirectionalPressure": "positive",
                     "uncertaintyNotes": ["sustainability of Copilot subscription growth"],
                     "evidence": ["cloud services grew 28%", "boosted by corporate adoption of Microsoft 365 Copilot"]
+                }
+                extracted.append(event)
+
+            if "dell-msft-contract" in user_msg or "Dell Technologies" in user_msg:
+                event = {
+                    "articleId": "dell_msft_contract_001",
+                    "eventType": "other",
+                    "eventSummary": "Dell Technologies wins a $10 billion government contract and hits an all-time high.",
+                    "hardFacts": ["Dell Technologies won a $10 billion government contract", "Dell hit an all-time high"],
+                    "entities": ["Dell Technologies", "DELL"],
+                    "eventTags": ["government contract", "all-time high"],
+                    "regions": ["United States"],
+                    "sectors": ["technology"],
+                    "commodities": [],
+                    "technologyThemes": ["enterprise infrastructure"],
+                    "possibleDirectionalPressure": "positive",
+                    "uncertaintyNotes": ["The source tag links the item to Microsoft, but the article summary does not explain the exact mechanism."],
+                    "evidence": ["wins $10B govt contract", "hits all-time high"]
+                }
+                extracted.append(event)
+
+            if "nvidia-ai-data-center" in user_msg or "currents_8532d38f-c8bd-55c3-ac51-dd3860f1a287" in user_msg:
+                event = {
+                    "articleId": "currents_8532d38f-c8bd-55c3-ac51-dd3860f1a287",
+                    "eventType": "private_company_technology",
+                    "eventSummary": "TechRepublic reports Nvidia-backed Reflection AI plans a multibillion-dollar AI data center in South Korea.",
+                    "hardFacts": ["TechRepublic reports Reflection AI is Nvidia-backed", "Reflection AI plans a multibillion-dollar AI data center in South Korea"],
+                    "mentionedTickers": ["NVDA"],
+                    "entities": ["Nvidia", "Reflection AI"],
+                    "eventTags": ["AI infrastructure", "data center", "open AI infrastructure"],
+                    "regions": ["South Korea"],
+                    "sectors": ["technology", "AI"],
+                    "commodities": [],
+                    "technologyThemes": ["AI infrastructure", "frontier AI"],
+                    "possibleDirectionalPressure": "positive",
+                    "uncertaintyNotes": ["Reflection AI is private; the article does not quantify Nvidia's direct financial exposure"],
+                    "evidence": ["Nvidia-backed Reflection AI plans a multibillion-dollar data center in South Korea"]
                 }
                 extracted.append(event)
                 
@@ -295,6 +339,110 @@ class TestWorkflow(unittest.TestCase):
         self.assertIn("AAPL", final_state["ticker_syntheses"])
         self.assertIn("MSFT", final_state["ticker_syntheses"])
 
+        msft_direct = final_state["ticker_buckets"]["MSFT"]["directEvents"][0]
+        self.assertIn("MSFT", msft_direct["sourceRelatedTickers"])
+        self.assertEqual(msft_direct["impactPath"], ["MSFT"])
+        self.assertIn("Directly tagged", msft_direct["reasonForRouting"])
+
+    @patch('backend.iterations.common.get_llm_fast')
+    @patch('backend.iterations.common.get_llm')
+    def test_iteration_1_preserves_direct_source_tag_for_non_named_company(self, mock_get_llm, mock_get_llm_fast):
+        """Source ticker tags are routing evidence even when the headline names another company."""
+        mock_llm = MagicMock()
+        mock_llm.with_structured_output = self.mock_structured
+        mock_get_llm.return_value = mock_llm
+        mock_get_llm_fast.return_value = mock_llm
+
+        article = {
+            "articleId": "dell_msft_contract_001",
+            "headline": "Dell Technologies (DELL) Wins $10B Govt Contract, Hits All-Time High",
+            "summary": "Dell Technologies wins a $10 billion government contract and hits an all-time high.",
+            "sourceName": "Finnhub",
+            "sourceApi": "finnhub",
+            "publishedAt": "2026-05-28T17:20:00Z",
+            "url": "http://example.com/dell-msft-contract",
+            "relatedTickers": ["MSFT"],
+        }
+        initial_state = {
+            "iteration": 1,
+            "watchlist": self.watchlist,
+            "scenario_id": "live",
+            "simulated_now": "2026-05-28T17:25:00Z",
+            "articles": [],
+            "canonical_events": [],
+            "routed_candidates": [],
+            "ticker_buckets": {},
+            "ticker_syntheses": {},
+            "duplicate_counts": {},
+            "ingestion_metadata": {}
+        }
+
+        with patch('backend.iterations.common.get_news_payload') as mock_payload:
+            mock_payload.return_value = {
+                "total_ingested": 1,
+                "passed_freshness": 1,
+                "articles": [article],
+            }
+            final_state = get_workflow(1).invoke(initial_state)
+
+        self.assertEqual(len(final_state["canonical_events"]), 1)
+        self.assertTrue(any(r["ticker"] == "MSFT" and r["relationshipType"] == "direct" for r in final_state["routed_candidates"]))
+        msft_events = final_state["ticker_buckets"]["MSFT"]["directEvents"]
+        self.assertEqual(len(msft_events), 1)
+        self.assertEqual(msft_events[0]["sourceRelatedTickers"], ["MSFT"])
+        self.assertEqual(msft_events[0]["impactPath"], ["MSFT"])
+        self.assertIn("Directly tagged", msft_events[0]["reasonForRouting"])
+
+    @patch('backend.iterations.common.get_llm_fast')
+    @patch('backend.iterations.common.get_llm')
+    def test_iteration_3_routes_untagged_article_by_mentioned_ticker(self, mock_get_llm, mock_get_llm_fast):
+        """Currents stories with no source ticker should still route when extraction maps a watched ticker."""
+        mock_llm = MagicMock()
+        mock_llm.with_structured_output = self.mock_structured
+        mock_get_llm.return_value = mock_llm
+        mock_get_llm_fast.return_value = mock_llm
+
+        article = {
+            "articleId": "currents_8532d38f-c8bd-55c3-ac51-dd3860f1a287",
+            "sourceApi": "currents",
+            "sourceName": "TechRepublic",
+            "url": "https://www.techrepublic.com/article/news-nvidia-ai-data-center-south-korea-china-open-source/",
+            "headline": "Nvidia-Backed Startup Plans Billion-Dollar AI Fortress in South Korea",
+            "summary": "Nvidia-backed Reflection AI plans a multibillion-dollar data center in South Korea as the US pushes open AI infrastructure to counter Chinese rivals.",
+            "publishedAt": "2026-05-28T17:21:00Z",
+            "relatedTickers": [],
+        }
+        initial_state = {
+            "iteration": 3,
+            "watchlist": self.watchlist,
+            "scenario_id": "live",
+            "simulated_now": "2026-05-28T17:25:00Z",
+            "articles": [],
+            "canonical_events": [],
+            "routed_candidates": [],
+            "ticker_buckets": {},
+            "ticker_syntheses": {},
+            "duplicate_counts": {},
+            "ingestion_metadata": {}
+        }
+
+        with patch('backend.iterations.common.get_news_payload') as mock_payload:
+            mock_payload.return_value = {
+                "total_ingested": 1,
+                "passed_freshness": 1,
+                "articles": [article],
+            }
+            final_state = get_workflow(3).invoke(initial_state)
+
+        event = final_state["canonical_events"][0]
+        self.assertEqual(event["mentionedTickers"], ["NVDA"])
+        self.assertTrue(any(r["ticker"] == "NVDA" and r["relationshipType"] == "direct" for r in final_state["routed_candidates"]))
+        nvda_events = final_state["ticker_buckets"]["NVDA"]["directEvents"]
+        self.assertEqual(len(nvda_events), 1)
+        self.assertEqual(nvda_events[0]["mentionedTickers"], ["NVDA"])
+        self.assertEqual(nvda_events[0]["entities"], ["Nvidia", "Reflection AI"])
+        self.assertEqual(nvda_events[0]["sourceName"], "TechRepublic")
+
     @patch('backend.iterations.common.get_llm_fast')
     @patch('backend.iterations.common.get_llm')
     def test_iteration_2_ledger_duplicates(self, mock_get_llm, mock_get_llm_fast):
@@ -330,6 +478,8 @@ class TestWorkflow(unittest.TestCase):
         
         # Duplicate count for AAPL should be 1
         self.assertEqual(final_state["duplicate_counts"].get("AAPL", 0), 1)
+        self.assertTrue(final_state["ticker_buckets"]["AAPL"]["directEvents"])
+        self.assertIn("sourceRelatedTickers", final_state["ticker_buckets"]["AAPL"]["directEvents"][0])
 
     @patch('backend.iterations.common.get_llm_fast')
     @patch('backend.iterations.common.get_llm')
@@ -375,6 +525,171 @@ class TestWorkflow(unittest.TestCase):
         # 3. Red Sea Disruption should route to DAL via Logistics Cost Risk -> Airline sensitivities (eventId: evt_currents_cross_003)
         redsea_routes = [r for r in routed if "evt_currents_cross_003" in r["eventId"]]
         self.assertTrue(any(r["ticker"] == "DAL" for r in redsea_routes))
+        self.assertTrue(final_state["ticker_buckets"]["DAL"]["crossImpactEvents"])
+        self.assertIn("reasonForRouting", final_state["ticker_buckets"]["DAL"]["crossImpactEvents"][0])
+
+    def test_intraday_significance_floor_for_fresh_direct_contract(self):
+        synthesis = {
+            "mainCatalysts": [
+                {
+                    "eventId": "evt_dell_msft_contract_001",
+                    "label": "Dell contract",
+                    "relationshipType": "direct",
+                    "eventType": "other",
+                    "possibleInfluence": "positive",
+                    "confidence": "medium",
+                    "recency": "breaking",
+                    "impactPath": ["MSFT"],
+                    "significance": 3,
+                }
+            ]
+        }
+        bucket = {
+            "directEvents": [
+                {
+                    "eventId": "evt_dell_msft_contract_001",
+                    "relationshipType": "direct",
+                    "headline": "Dell Technologies wins $10B government contract, hits all-time high",
+                    "eventSummary": "Dell Technologies wins a $10 billion government contract and hits an all-time high.",
+                    "hardFacts": [{"fact": "Dell Technologies won a $10 billion government contract", "minutesAgo": 13}],
+                    "eventTags": ["government contract", "all-time high"],
+                    "technologyThemes": ["enterprise infrastructure"],
+                    "possibleDirectionalPressure": "positive",
+                    "minutesAgo": 13,
+                }
+            ],
+            "crossImpactEvents": [],
+        }
+
+        normalized = _normalize_synthesis_significance(synthesis, bucket)
+        self.assertGreaterEqual(normalized["mainCatalysts"][0]["significance"], 7)
+
+    def test_synthesis_postprocess_restores_direct_and_filters_weak_indirect(self):
+        synthesis = {
+            "summaryHeadline": "Macro pressure dominates MSFT",
+            "situationSummary": "Weak macro paths were selected by the model.",
+            "mainCatalysts": [
+                {
+                    "eventId": "evt_weak_macro",
+                    "label": "U.S. voters coping with higher prices",
+                    "relationshipType": "indirect",
+                    "eventType": "other",
+                    "possibleInfluence": "unclear",
+                    "confidence": "tentative",
+                    "recency": "breaking",
+                    "impactPath": ["United States", "MSFT"],
+                    "significance": 4,
+                }
+            ],
+            "overallPossibleInfluence": "mixed",
+            "confidence": "medium",
+            "uncertainties": [],
+            "watchItems": [],
+        }
+        bucket = {
+            "directEvents": [
+                {
+                    "eventId": "evt_agentic_ai_msft",
+                    "relationshipType": "direct",
+                    "headline": "Could Agentic AI Be Apple's Next Big Tailwind?",
+                    "eventSummary": "Yahoo article argues that Agentic AI could be Apple's next big tailwind.",
+                    "hardFacts": [{"fact": "Published on 2026-05-30T07:50:00+00:00", "minutesAgo": 99}],
+                    "mentionedTickers": ["AAPL"],
+                    "entities": ["Apple"],
+                    "eventTags": ["AI development"],
+                    "technologyThemes": ["AI models"],
+                    "possibleDirectionalPressure": "unclear",
+                    "sourceRelatedTickers": ["MSFT"],
+                    "impactPath": ["MSFT"],
+                    "minutesAgo": 99,
+                }
+            ],
+            "crossImpactEvents": [
+                {
+                    "eventId": "evt_weak_macro",
+                    "relationshipType": "indirect",
+                    "headline": "9 U.S. Voters Tell Us How They're Coping With Higher Prices",
+                    "eventSummary": "U.S. voters are coping with higher prices.",
+                    "hardFacts": [{"fact": "Published recently", "minutesAgo": 27}],
+                    "eventTags": ["economic"],
+                    "technologyThemes": [],
+                    "possibleDirectionalPressure": "unclear",
+                    "impactPath": ["United States", "MSFT"],
+                    "pathStrength": "weak",
+                    "pathConfidence": 0.45,
+                    "minutesAgo": 27,
+                }
+            ],
+        }
+
+        repaired = _postprocess_synthesis(synthesis, bucket, "MSFT")
+        self.assertEqual([c["eventId"] for c in repaired["mainCatalysts"]], ["evt_agentic_ai_msft"])
+        self.assertTrue(any("evt_weak_macro" not in c["eventId"] for c in repaired["mainCatalysts"]))
+        self.assertTrue(repaired["watchItems"])
+
+    def test_judge_relaxes_watch_item_language_failure_without_trade_instruction(self):
+        judge_result = OutputSafetyJudgeOut(
+            passes=False,
+            groundingPassed=True,
+            advicePassed=False,
+            pathPassed=True,
+            defects=["Contains implicit trading recommendations in the watchItems section."],
+            regenerationInstruction="Remove watchItems.",
+        )
+        synthesis = {
+            "watchItems": [
+                "Monitor whether AI political activity becomes relevant to MSFT via Frontier AI."
+            ]
+        }
+
+        relaxed = _relax_language_only_judge_failure(judge_result, synthesis)
+        self.assertTrue(relaxed.passes)
+        self.assertTrue(relaxed.advicePassed)
+
+    def test_synthesis_directional_read_can_override_unclear_extraction_hint(self):
+        synthesis = {
+            "summaryHeadline": "MSFT read-through improves",
+            "situationSummary": "The model takes a tentative positive intraday read from the direct event.",
+            "mainCatalysts": [
+                {
+                    "eventId": "evt_direct_msft",
+                    "label": "Direct MSFT catalyst",
+                    "relationshipType": "direct",
+                    "eventType": "market_attention",
+                    "possibleInfluence": "positive",
+                    "confidence": "tentative",
+                    "recency": "recent",
+                    "impactPath": ["MSFT"],
+                    "significance": 5,
+                }
+            ],
+            "overallPossibleInfluence": "unclear",
+            "confidence": "medium",
+            "uncertainties": [],
+            "watchItems": [],
+        }
+        bucket = {
+            "directEvents": [
+                {
+                    "eventId": "evt_direct_msft",
+                    "relationshipType": "direct",
+                    "headline": "Source-tagged MSFT catalyst",
+                    "eventSummary": "A source-tagged MSFT article creates a plausible positive intraday read.",
+                    "hardFacts": [],
+                    "eventTags": [],
+                    "technologyThemes": [],
+                    "possibleDirectionalPressure": "unclear",
+                    "sourceRelatedTickers": ["MSFT"],
+                    "impactPath": ["MSFT"],
+                    "minutesAgo": 20,
+                }
+            ],
+            "crossImpactEvents": [],
+        }
+
+        repaired = _postprocess_synthesis(synthesis, bucket, "MSFT")
+        self.assertEqual(repaired["mainCatalysts"][0]["possibleInfluence"], "positive")
+        self.assertEqual(repaired["overallPossibleInfluence"], "positive")
 
 
 class TestGuardrails(unittest.TestCase):
@@ -681,28 +996,132 @@ class TestGraphExpansion(unittest.TestCase):
             "queryTerms": ["Starbucks", "SBUX"]
         })
         
-        # SBUX is initially in the graph as a private_company
+        # Public companies with tickers are normalized at insertion time.
         nodes = get_graph()["nodes"]
         sbux_nodes = [n for n in nodes if n.get("ticker") == "SBUX"]
         self.assertEqual(len(sbux_nodes), 1)
-        self.assertEqual(sbux_nodes[0]["nodeType"], "private_company")
+        self.assertEqual(sbux_nodes[0]["nodeType"], "ticker")
         
-        # Run expansion for SBUX. Since it's not present as a "ticker" nodeType,
-        # it should NOT be skipped even if force=False.
+        # Run expansion for SBUX. Since it is now a clean ticker root, automatic
+        # expansion without force can skip it.
         res = expand_graph_for_ticker("SBUX", force=False)
         self.assertEqual(res["ticker"], "SBUX")
-        self.assertEqual(res["addedNodes"], 0)
-        self.assertFalse(res["usedLLM"])
+        self.assertTrue(res.get("skipped", False))
         
-        # Verify the node type has been updated to "ticker"
-        nodes_after = get_graph()["nodes"]
-        sbux_nodes_after = [n for n in nodes_after if n.get("ticker") == "SBUX"]
-        self.assertEqual(len(sbux_nodes_after), 1)
-        self.assertEqual(sbux_nodes_after[0]["nodeType"], "ticker")
-        
-        # Run expansion again. Since it is now present as a "ticker", it should be skipped.
-        res_skipped = expand_graph_for_ticker("SBUX", force=False)
-        self.assertTrue(res_skipped.get("skipped", False))
+    def test_normalize_graph_repairs_ticker_roots_and_public_company_nodes(self):
+        from backend.routing import normalize_graph
+
+        graph = {
+            "nodes": [
+                {"nodeId": "ticker_NVDA", "nodeType": "ticker", "name": "NVDA", "aliases": [], "queryTerms": ["NVDA"]},
+                {"nodeId": "private_company_SBUX", "nodeType": "private_company", "name": "Starbucks Corporation", "ticker": "SBUX", "aliases": ["Starbucks"], "queryTerms": ["coffee"]},
+                {"nodeId": "country_United_States", "nodeType": "country", "name": "United States", "aliases": ["US"], "queryTerms": ["US politics"]},
+                {"nodeId": "company_OpenAI", "nodeType": "private_company", "name": "OpenAI", "aliases": ["ChatGPT"], "queryTerms": ["OpenAI"]},
+            ],
+            "edges": [],
+        }
+
+        normalized = normalize_graph(graph, watchlist=["NVDA", "SBUX"])
+        by_id = {n["nodeId"]: n for n in normalized["nodes"]}
+
+        self.assertEqual(by_id["ticker_NVDA"]["ticker"], "NVDA")
+        self.assertEqual(by_id["private_company_SBUX"]["nodeType"], "ticker")
+        self.assertEqual(by_id["private_company_SBUX"]["ticker"], "SBUX")
+        self.assertEqual(by_id["country_United_States"]["nodeType"], "country")
+        self.assertEqual(by_id["company_OpenAI"]["nodeType"], "private_company")
+
+    def test_cross_impact_queries_drop_broad_noise_terms(self):
+        from backend.routing import set_graph, get_cross_impact_queries
+
+        graph = {
+            "nodes": [
+                {"nodeId": "ticker_AAPL", "nodeType": "ticker", "name": "Apple Inc.", "ticker": "AAPL", "aliases": ["Apple", "iPhone"], "queryTerms": ["Apple", "iPhone", "Mac"]},
+                {"nodeId": "policy_export", "nodeType": "policy_area", "name": "US Export Controls", "aliases": ["US"], "queryTerms": ["US", "AI", "US export controls", "chip export restrictions"]},
+                {"nodeId": "theme_ai", "nodeType": "technology_theme", "name": "Frontier AI", "aliases": ["AI"], "queryTerms": ["AI", "large language model", "AI data center"]},
+                {"nodeId": "company_openai", "nodeType": "private_company", "name": "OpenAI", "aliases": ["ChatGPT"], "queryTerms": ["OpenAI", "ChatGPT"]},
+            ],
+            "edges": [
+                {"fromNodeId": "policy_export", "toNodeId": "ticker_AAPL", "edgeType": "policy_exposure", "rationale": "test", "confidence": 0.8},
+                {"fromNodeId": "theme_ai", "toNodeId": "ticker_AAPL", "edgeType": "technology_exposure", "rationale": "test", "confidence": 0.8},
+                {"fromNodeId": "company_openai", "toNodeId": "theme_ai", "edgeType": "technology_exposure", "rationale": "test", "confidence": 0.8},
+            ],
+        }
+        set_graph(graph)
+        keywords, extra_tickers = get_cross_impact_queries(["AAPL"])
+        lower = {k.lower() for k in keywords}
+
+        self.assertIn("us export controls", lower)
+        self.assertIn("ai data center", lower)
+        self.assertNotIn("us", lower)
+        self.assertNotIn("ai", lower)
+        self.assertNotIn("iphone", lower)
+        self.assertNotIn("mac", lower)
+        self.assertEqual(extra_tickers, [])
+
+    def test_live_relevance_gate_rejects_currents_noise(self):
+        from backend.ingestion import is_relevant_live_article
+
+        keywords = ["US export controls", "AI data center", "Red Sea Shipping"]
+        reddit_iphone = {
+            "sourceApi": "currents",
+            "sourceName": "/u/tryn_asidyy",
+            "url": "https://www.reddit.com/r/iphone/comments/1trva7u/is_this_real_iphone/",
+            "headline": "Is this real iphone ?",
+            "summary": "Please help me to figure out, this is real or fake one",
+        }
+        ai_datacenter = {
+            "sourceApi": "currents",
+            "sourceName": "TechRepublic",
+            "url": "https://www.techrepublic.com/article/news-nvidia-ai-data-center-south-korea-china-open-source/",
+            "headline": "Nvidia-Backed Startup Plans Billion-Dollar AI Fortress in South Korea",
+            "summary": "Reflection AI plans a multibillion-dollar AI data center in South Korea.",
+        }
+        marketbeat_filing = {
+            "sourceApi": "currents",
+            "sourceName": "MarketBeat",
+            "url": "https://www.marketbeat.com/instant-alerts/filing-king-luther-capital-management-corp-sells-7962-shares-of-yum-brands-inc-yum-2026-05-30/",
+            "headline": "King Luther Capital Management Corp Sells 7,962 Shares of Yum! Brands, Inc. $YUM",
+            "summary": "Form 13F filing.",
+        }
+
+        self.assertFalse(is_relevant_live_article(reddit_iphone, keywords))
+        self.assertTrue(is_relevant_live_article(ai_datacenter, keywords))
+        self.assertFalse(is_relevant_live_article(marketbeat_filing, keywords))
+
+    def test_currents_company_news_can_pass_as_direct_source(self):
+        from backend.ingestion import is_relevant_live_article
+
+        company_article = {
+            "sourceApi": "currents_company",
+            "sourceName": "Yahoo",
+            "url": "https://finance.yahoo.com/news/could-agentic-ai-be-apples-next-big-tailwind",
+            "headline": "Could Agentic AI Be Apple's Next Big Tailwind?",
+            "summary": "Discussion of agentic AI as a potential tailwind for Apple shares.",
+            "relatedTickers": ["AAPL"],
+            "queryTerms": ["$AAPL", "Apple", "Apple Inc."],
+        }
+        product_reception_article = {
+            "sourceApi": "currents_company",
+            "sourceName": "Autocar",
+            "url": "https://www.autocar.example/news/ferrari-luce-design-reaction",
+            "headline": "New Ferrari Luce disappoints expectations with divisive design",
+            "summary": "Early reactions to Ferrari's new Luce model criticize the design direction.",
+            "relatedTickers": ["RACE"],
+            "queryTerms": ["$RACE", "Ferrari", "Ferrari N.V."],
+        }
+        reddit_article = {
+            "sourceApi": "currents_company",
+            "sourceName": "/u/tryn_asidyy",
+            "url": "https://www.reddit.com/r/iphone/comments/1trva7u/is_this_real_iphone/",
+            "headline": "Is this real iphone ?",
+            "summary": "Please help me figure out if this is real.",
+            "relatedTickers": ["AAPL"],
+            "queryTerms": ["$AAPL", "Apple", "Apple Inc."],
+        }
+
+        self.assertTrue(is_relevant_live_article(company_article, []))
+        self.assertTrue(is_relevant_live_article(product_reception_article, []))
+        self.assertFalse(is_relevant_live_article(reddit_article, []))
 
 if __name__ == "__main__":
     unittest.main()

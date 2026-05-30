@@ -27,7 +27,10 @@ from backend.persistence import save_graph
 VALID_NODE_TYPES = {
     "ticker",
     "private_company",
+    "country",
     "region",
+    "policy_area",
+    "government_agency",
     "technology_theme",
     "shipping_route",
     "risk_factor",
@@ -44,6 +47,9 @@ VALID_EDGE_TYPES = {
     "regional_exposure",
     "shipping_exposure",
     "macro_sensitivity",
+    "policy_exposure",
+    "defense_exposure",
+    "trade_exposure",
     "sector_exposure",
     "commodity_exposure",
 }
@@ -59,13 +65,15 @@ class GraphExpansionError(Exception):
 # below (edges must point at known nodeIds) still run — structured outputs enforces
 # SHAPE, not whether a generated nodeId actually exists in the graph.
 NodeTypeLiteral = Literal[
-    "ticker", "private_company", "region", "technology_theme",
-    "shipping_route", "risk_factor", "sector", "commodity",
+    "ticker", "private_company", "country", "region", "policy_area",
+    "government_agency", "technology_theme", "shipping_route", "risk_factor",
+    "sector", "commodity",
 ]
 EdgeTypeLiteral = Literal[
     "supplier_of", "customer_of", "competitor_of", "partner_of",
     "technology_exposure", "regional_exposure", "shipping_exposure",
-    "macro_sensitivity", "sector_exposure", "commodity_exposure",
+    "macro_sensitivity", "policy_exposure", "defense_exposure",
+    "trade_exposure", "sector_exposure", "commodity_exposure",
 ]
 
 
@@ -172,10 +180,13 @@ You MUST include exactly one node for the ticker itself:
   "queryTerms": ["search keywords: company name, ticker, flagship products/brands"]
 }
 For each relevant exposure entity that is NOT already in the graph, add a node. 
-For companies (suppliers, customers, competitors, partners), write their full name in "name", and their stock ticker in "ticker" if they are public (e.g. HNHPF for Foxconn, AMD for Advanced Micro Devices). Use nodeType "private_company" for these.
+For companies (suppliers, customers, competitors, partners), write their full name in "name".
+If a company is public and has a stock ticker, use nodeType "ticker" and include ticker.
+Use nodeType "private_company" ONLY for non-public/private actors such as OpenAI,
+Mistral AI, Anthropic, Claude, Reflection AI, or government-owned/non-listed entities.
 {
   "nodeId": "<type>_<ShortName>",   e.g. supplier_Foxconn, region_Taiwan, theme_semiconductors, risk_oil_price, commodity_lithium, route_Red_Sea, sector_cloud
-  "nodeType": "private_company" | "region" | "technology_theme" | "shipping_route" | "risk_factor" | "sector" | "commodity",
+  "nodeType": "ticker" | "private_company" | "country" | "region" | "policy_area" | "government_agency" | "technology_theme" | "shipping_route" | "risk_factor" | "sector" | "commodity",
   "name": "Human readable full name of the company or entity (e.g. Hon Hai Precision Industry or Advanced Micro Devices)",
   "ticker": "Stock ticker symbol if public, otherwise null or omit",
   "aliases": ["alternative names/tickers"],
@@ -187,7 +198,7 @@ Create competitor_of edges using the provided known stock peers!
 {
   "fromNodeId": "<source nodeId — a new node OR an existing nodeId from the provided list>",
   "toNodeId": "ticker_<SYMBOL>  (or another node when modelling an intermediate hop)",
-  "edgeType": "supplier_of" | "customer_of" | "competitor_of" | "partner_of" | "technology_exposure" | "regional_exposure" | "shipping_exposure" | "macro_sensitivity" | "sector_exposure" | "commodity_exposure",
+  "edgeType": "supplier_of" | "customer_of" | "competitor_of" | "partner_of" | "technology_exposure" | "regional_exposure" | "shipping_exposure" | "macro_sensitivity" | "policy_exposure" | "defense_exposure" | "trade_exposure" | "sector_exposure" | "commodity_exposure",
   "strength": "high" | "medium" | "low",
   "confidence": 0.0-1.0,
   "notes": "one sentence explaining the causal relationship"
@@ -196,12 +207,16 @@ Create competitor_of edges using the provided known stock peers!
 Rules:
 1. REUSE existing nodes: if an exposure entity already exists in the provided node list (e.g. theme_semiconductors, region_Taiwan, ticker_TSM), reference its EXACT existing nodeId in edges — do NOT create a duplicate node.
 2. Avoid duplicates by comparing aliases and tickers. If the company exists under a different name (e.g. TSM exists as ticker_TSM), do not create supplier_TSMC.
-3. Be COMPREHENSIVE, not conservative. Produce roughly 8-15 exposure links covering the full surface: key SUPPLIERS, major CUSTOMERS, direct COMPETITORS (use the known stock peers provided), strategic PARTNERS, regions of operation/revenue concentration, relevant technology themes, input COMMODITIES, macro/rate/fuel sensitivities, and shipping/logistics routes where they genuinely apply. Include both strong and plausible-but-secondary links (use confidence to grade them) — a sparse graph misses cross-impact news.
+3. Be COMPREHENSIVE, not conservative. Produce roughly 8-15 exposure links covering the full surface: key SUPPLIERS, major CUSTOMERS, direct COMPETITORS (use the known stock peers provided), strategic PARTNERS, regions/countries of operation or revenue concentration, policy areas (US politics, EU regulation, export controls, defense spending), relevant technology themes, input COMMODITIES, macro/rate/fuel sensitivities, and shipping/logistics routes where they genuinely apply. Include both strong and plausible-but-secondary links (use confidence to grade them) — a sparse graph misses cross-impact news.
 4. CONNECT TO OTHER WATCHLIST TICKERS when a real relationship exists: if an existing ticker_* node is a supplier, customer, or competitor of the new ticker, add that edge (e.g. competitor_of between two chipmakers, supplier_of from a foundry ticker to a fabless ticker).
 5. Use only REAL, well-known entities. Do NOT invent companies.
 6. confidence reflects how directly the source moves this ticker intraday (0.9+ = near-certain causal link, 0.6 = relevant, 0.45 = plausible/marginal). Do not omit a real link just because it is secondary — grade it with a lower confidence instead.
 7. Every edge's fromNodeId and toNodeId must be either the new ticker node, one of your new nodes, or an existing nodeId from the provided list.
-8. EDGE DIRECTION: Point each edge FROM the cause/source node TO the affected node. For exposure/sensitivity edges (regional_exposure, technology_exposure, shipping_exposure, macro_sensitivity, sector_exposure, commodity_exposure), the region/theme/route/risk_factor/sector/commodity is the CAUSE (fromNodeId) and the company/ticker is the AFFECTED node (toNodeId). Do NOT reverse this (e.g., fromNodeId="region_United_States", toNodeId="ticker_MCD" is correct; fromNodeId="ticker_MCD", toNodeId="region_United_States" is incorrect).
+8. EDGE DIRECTION: Point each edge FROM the cause/source node TO the affected node. For exposure/sensitivity edges (regional_exposure, technology_exposure, shipping_exposure, macro_sensitivity, policy_exposure, defense_exposure, trade_exposure, sector_exposure, commodity_exposure), the country/region/policy/agency/theme/route/risk_factor/sector/commodity is the CAUSE (fromNodeId) and the company/ticker is the AFFECTED node (toNodeId). Do NOT reverse this (e.g., fromNodeId="country_United_States", toNodeId="ticker_MCD" is correct; fromNodeId="ticker_MCD", toNodeId="country_United_States" is incorrect).
+9. Model government and policy catalysts explicitly when relevant. Examples:
+   - United States / US politics / US federal procurement / Department of Defense spending can affect Microsoft through Azure Government, defense cloud, cybersecurity, and public-sector software demand.
+   - US export controls, tariffs, antitrust, or immigration policy can affect US companies and non-US exporters selling into the US.
+   - EU regulation can affect US platforms and EU exporters through compliance, privacy, competition, and trade channels.
 """
 
 
@@ -229,14 +244,16 @@ def find_matching_node(new_node: Dict[str, Any], existing_nodes: List[Dict[str, 
     for e in existing_nodes:
         e_type = e.get("nodeType")
         is_e_company = e_type in ("ticker", "private_company")
+        new_type_cmp = "region" if new_type == "country" else new_type
+        e_type_cmp = "region" if e_type == "country" else e_type
         
         # If one is a company and the other is not, they don't match
         if is_new_company != is_e_company:
-            if new_type != e_type:
+            if new_type_cmp != e_type_cmp:
                 continue
         elif not is_new_company:
             # For non-companies, type must match exactly
-            if new_type != e_type:
+            if new_type_cmp != e_type_cmp:
                 continue
 
         # 1. Match by ticker if both have tickers

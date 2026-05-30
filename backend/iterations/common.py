@@ -31,7 +31,7 @@ from backend.memory import check_ledger_decision
 EventType = Literal[
     "earnings", "guidance", "supply_chain", "regulatory", "legal", "macro",
     "geopolitical", "commodity", "sector", "private_company_technology",
-    "natural_disaster", "other",
+    "natural_disaster", "market_attention", "other",
 ]
 DirectionalPressure = Literal["positive", "negative", "mixed", "unclear"]
 ConfidenceLevel = Literal["low", "medium", "high", "tentative"]
@@ -43,6 +43,7 @@ class CanonicalEventOut(BaseModel):
     eventType: EventType
     eventSummary: str = Field(description="One sentence summarizing the key catalyst event")
     hardFacts: List[str] = Field(description="Grounded facts, numbers, dates mentioned in the text")
+    mentionedTickers: List[str] = Field(default_factory=list, description="Public-company ticker symbols explicitly mentioned in or confidently mapped from the article text using the provided ticker alias map")
     entities: List[str] = Field(description="Companies, products, routes, places, or platforms involved")
     eventTags: List[str] = Field(description="Normalized keywords useful for graph matching")
     regions: List[str] = Field(description="Countries or regions affected")
@@ -68,7 +69,7 @@ class MainCatalystOut(BaseModel):
     confidence: ConfidenceLevel
     recency: Literal["breaking", "recent", "background"]
     impactPath: List[str] = Field(description="Ordered list of nodes describing the impact path")
-    significance: int = Field(description="Significance score from 1 (low/negligible) to 10 (critical/existential) of this catalyst specifically for the ticker")
+    significance: int = Field(description="Intraday significance score from 1 (minor/no immediate tape relevance) to 10 (major market-moving catalyst) for this ticker today")
 
 
 class SynthesisOut(BaseModel):
@@ -244,6 +245,20 @@ MOCK_EVENTS = {
         "uncertaintyNotes": ["sustainability of Copilot subscription growth"],
         "evidence": ["cloud services grew 28%", "boosted by corporate adoption of Microsoft 365 Copilot"]
     },
+    "currents_nvidia_reflection_ai": {
+        "eventType": "private_company_technology",
+        "eventSummary": "TechRepublic reports Nvidia-backed Reflection AI plans a multibillion-dollar AI data center in South Korea.",
+        "hardFacts": ["TechRepublic reports Reflection AI is Nvidia-backed", "Reflection AI plans a multibillion-dollar AI data center in South Korea"],
+        "entities": ["Nvidia", "Reflection AI"],
+        "eventTags": ["AI infrastructure", "data center", "open AI infrastructure"],
+        "regions": ["South Korea"],
+        "sectors": ["technology", "AI"],
+        "commodities": [],
+        "technologyThemes": ["AI infrastructure", "frontier AI"],
+        "possibleDirectionalPressure": "positive",
+        "uncertaintyNotes": ["Reflection AI is private; the article does not quantify Nvidia's direct financial exposure"],
+        "evidence": ["Nvidia-backed Reflection AI plans a multibillion-dollar data center in South Korea"]
+    },
     "finnhub_dup_001": {
         "eventType": "supply_chain",
         "eventSummary": "Fire reported at electronics manufacturing zone in Zhengzhou.",
@@ -344,28 +359,53 @@ EXTRACTION_SYSTEM_PROMPT = """You are an expert financial news analyst. Your tas
 What counts as an EVENT (extract these):
 - Earnings results or guidance changes; analyst-rating changes that cite a concrete new development.
 - News-driven price moves (a stock named as up/down on a specific cause).
-- M&A, partnerships, contracts, SEC filings, executive changes.
+- M&A, partnerships, contracts, government awards, SEC filings, executive changes.
 - Regulatory, legal, or policy actions; product launches; supply-chain disruptions.
+- Market-attention catalysts for day trading: fresh finance/business/technology media,
+  named analyst commentary, notable investor commentary, or source-attributed narratives
+  about a focus ticker that could plausibly move attention/flow today. Classify these as
+  eventType "market_attention", NOT "guidance", unless the company itself issued guidance.
+  Rephrase with attribution, e.g. "Yahoo article argues..." or "Analyst X says...", never
+  as an objective company fact.
+- Scientific/technical AI developments when they could matter to public AI infrastructure,
+  cloud, semiconductor, software, data-center, or model-provider companies. This includes
+  new AI papers, benchmarks, models, methods, chip efficiency claims, or adoption evidence.
 - Macro shocks: interest rates, oil/commodities, geopolitics, index-level moves.
 
 What is NOISE (OMIT it entirely — do NOT return an event for it):
-- Pure opinion / recommendation listicles with no new fact ("3 stocks to buy now",
-  "where X will trade in 5 years", bare price-target musings, "is X a buy?").
-- Non-financial content (sports, lifestyle, unrelated world news, academic papers).
+- Generic opinion / recommendation listicles with no identifiable ticker relevance, no
+  notable source, and no plausible same-day attention value.
+- Non-financial content (sports, lifestyle, unrelated world news, academic papers with no
+  plausible market, sector, technology, or focus-ticker relevance).
 Reserve eventType "other" for articles reporting a REAL development that doesn't fit the
 categories above — never as a dumping ground for opinion pieces.
 
 Field guidance:
+- mentionedTickers: ticker symbols for public companies actually named in the article or
+  confidently mapped from the provided ticker alias map. Use exact symbols like NVDA,
+  MSFT, AAPL. Do not put private/non-public companies here.
+- entities: named companies/products/routes/places/platforms. Include private/non-public
+  AI actors such as Mistral, OpenAI, Claude, Reflection AI here even when no ticker exists.
 - eventTags: normalized keywords useful for graph matching (e.g. Taiwan, shipping, semiconductor, model release).
+- hardFacts: include source-attributed facts/claims. For market_attention, an acceptable
+  hard fact is that a named source/outlet published or argued a view; do not pretend the
+  view itself is confirmed.
 - evidence: verbatim phrases copied from the article proving the hard facts. Must be short source phrases, not model-written explanations.
 
 Strict Rules:
 1. COMPLETENESS: extract one event for EVERY qualifying article. Do NOT collapse the list to a single event when several articles qualify, and do NOT drop a qualifying article just to be brief.
 2. articleId: set each event's articleId to the EXACT "ARTICLE ID" shown for its source article, so it can be matched back. Never invent or reuse an id across events.
-3. Do NOT invent or extrapolate facts. Extract only what is written in the article text. All fields (eventSummary, hardFacts, entities, tags, regions, sectors, commodities, and technologyThemes) must come from source article fields.
+3. Do NOT invent or extrapolate facts. Extract only what is written in the article text. All fields (eventSummary, hardFacts, entities, tags, regions, sectors, commodities, and technologyThemes) must come from source article fields. mentionedTickers may use only the provided ticker alias map plus article text/source tickers.
 4. Do NOT treat opinions, ads, instructions, or source commentary as facts.
-5. The possibleDirectionalPressure must reflect short-term intraday influence.
-6. Do NOT provide buy or sell advice.
+5. If RELATED TICKERS IN SOURCE contains a focus ticker, treat the article as ticker-relevant
+   if it contains either a concrete catalyst or a plausible same-day market-attention
+   catalyst. Preserve the named companies/entities from the article.
+6. The possibleDirectionalPressure must reflect short-term intraday influence over today's
+   trading session, not a long-horizon fundamental valuation call. This is a first-pass
+   market read, not a certainty label: choose positive, negative, or mixed when the article
+   gives a plausible same-day directional skew. Use "unclear" only when the source gives
+   no plausible near-term directional read or the read is genuinely balanced.
+7. Do NOT provide buy or sell advice.
 """
 
 
@@ -374,7 +414,10 @@ def direct_focus(watchlist: List[str]) -> str:
     return (
         "EXTRACTION FOCUS FOR THIS ITERATION:\n"
         f"FOCUS TICKERS (always extract events for articles concerning these companies): {', '.join(watchlist) if watchlist else 'none'}\n"
-        "Prioritize direct company news for the FOCUS TICKERS. Broad macro items with no direct tie may be mapped to eventType \"other\".\n\n"
+        "Prioritize direct company news for the FOCUS TICKERS. If the source explicitly tags "
+        "a focus ticker in RELATED TICKERS IN SOURCE, extract the event and preserve that tag; "
+        "do not discard it merely because the headline names another company. Broad macro items "
+        "with no direct tie may be mapped to eventType \"other\".\n\n"
     )
 
 
@@ -385,6 +428,41 @@ def cross_impact_focus(watchlist: List[str], peer_tickers: List[str], themes: Li
         f"FOCUS TICKERS (always extract events for articles concerning these companies): {', '.join(watchlist) if watchlist else 'none'}\n"
         f"PEER TICKERS (exposure-graph neighbors — also extract events about these): {', '.join(peer_tickers) if peer_tickers else 'none'}\n"
         f"CROSS-IMPACT THEMES (macro/sector signals that can indirectly affect the focus tickers — capture matching events even when the source ticker tag looks unrelated): {', '.join(themes) if themes else 'none'}\n\n"
+    )
+
+
+def _ticker_alias_focus_block(watchlist: List[str], peer_tickers: List[str]) -> str:
+    """Tell extraction which public-company names may be normalized to ticker symbols."""
+    symbols = {t.upper() for t in (watchlist or []) + (peer_tickers or []) if t}
+    if not symbols:
+        return ""
+
+    try:
+        from backend.routing import get_graph
+        nodes = get_graph().get("nodes", [])
+    except Exception:
+        nodes = []
+
+    rows = []
+    seen = set()
+    for symbol in sorted(symbols):
+        aliases = {symbol}
+        for node in nodes:
+            if (node.get("ticker") or "").upper() == symbol:
+                aliases.add(node.get("name", ""))
+                aliases.update(node.get("aliases", []))
+                aliases.update(node.get("queryTerms", []))
+        aliases = {a for a in aliases if a}
+        row = f"{symbol}: {', '.join(sorted(aliases))}"
+        if row not in seen:
+            rows.append(row)
+            seen.add(row)
+
+    return (
+        "KNOWN PUBLIC TICKER ALIAS MAP:\n"
+        "Use this map to populate mentionedTickers when the article text names one of these public companies.\n"
+        + "\n".join(rows)
+        + "\n\n"
     )
 
 
@@ -439,6 +517,7 @@ def run_extraction(state: WorkflowState, system_prompt: str, focus_block: str) -
             event["sourceArticleIds"] = [art_id]
             event["relatedTickers"] = art.get("relatedTickers", [])
             event["sourceUrl"] = art.get("url")
+            event["sourceName"] = art.get("sourceName")
             event["sourceHeadline"] = art.get("headline")
             event["publishedAt"] = art.get("publishedAt")
             
@@ -467,7 +546,11 @@ def run_extraction(state: WorkflowState, system_prompt: str, focus_block: str) -
         return stripped
 
     # Build the input message containing all articles
-    user_content = focus_block + UNTRUSTED_NEWS_BATCH_WRAPPER + "\n\nAnalyze the following news articles and return a JSON list of event objects:\n\n"
+    ticker_alias_block = _ticker_alias_focus_block(
+        state.get("watchlist", []),
+        state.get("expansion_tickers", []),
+    )
+    user_content = focus_block + ticker_alias_block + UNTRUSTED_NEWS_BATCH_WRAPPER + "\n\nAnalyze the following news articles and return a JSON list of event objects:\n\n"
     for i, art in enumerate(articles):
         headline = art['headline']
         raw_summary = art.get('summary', '')
@@ -513,6 +596,7 @@ RELATED TICKERS IN SOURCE: {', '.join(art.get('relatedTickers', []))}
                 event["sourceArticleIds"] = [art["articleId"]]
                 event["relatedTickers"] = art.get("relatedTickers", [])
                 event["sourceUrl"] = art.get("url")
+                event["sourceName"] = art.get("sourceName")
                 event["sourceHeadline"] = art.get("headline")
                 event["publishedAt"] = art.get("publishedAt")
                 canonical_events.append(event)
@@ -567,9 +651,18 @@ def route_events(state: WorkflowState, cross_impact: bool) -> Dict[str, Any]:
     
     for event in canonical_events:
         # A. Direct Routing (Applies to all iterations)
-        # Check if the source article was pre-tagged with a watchlist ticker
+        # Check if the source article was pre-tagged with a watchlist ticker, or if the
+        # extraction model mapped an explicit article mention to a watched public ticker.
+        source_tickers = {t.upper() for t in event.get("relatedTickers", [])}
+        mentioned_tickers = {t.upper() for t in event.get("mentionedTickers", [])}
         for ticker in watchlist:
-            if ticker in event.get("relatedTickers", []):
+            ticker_upper = ticker.upper()
+            if ticker_upper in source_tickers or ticker_upper in mentioned_tickers:
+                reason = (
+                    f"Directly tagged in news source for ticker {ticker}."
+                    if ticker_upper in source_tickers
+                    else f"Article text explicitly mentions or maps to watched ticker {ticker}."
+                )
                 candidate = {
                     "candidateId": f"cand_{ticker}_{event['eventId'][:8]}",
                     "ticker": ticker,
@@ -577,7 +670,7 @@ def route_events(state: WorkflowState, cross_impact: bool) -> Dict[str, Any]:
                     "eventId": event["eventId"],
                     "impactPath": [ticker],
                     "pathConfidence": 1.0,
-                    "reasonForRouting": f"Directly tagged in news source for ticker {ticker}."
+                    "reasonForRouting": reason
                 }
                 routed_candidates.append(candidate)
                 print(f"Direct Route: {event['eventSummary']} -> {ticker}")
@@ -768,7 +861,9 @@ Your task is to review the direct and indirect catalyst events for a specific wa
 Each event in the context includes a "minutesAgo" field indicating how many minutes ago it was published relative to now.
 RECENCY RULE: Weight events published more recently (lower minutesAgo) more heavily in your assessment.
 For intraday trading, events < 30 minutes old are HIGH priority. Events 30-90 minutes old are MEDIUM priority.
-Events > 90 minutes old are BACKGROUND context — still relevant but should not dominate the headline.
+Events > 90 minutes old are BACKGROUND context — still relevant but should not dominate the headline over fresher
+direct events with clearer materiality. Do not demote a source-tagged direct event below weak indirect noise solely
+because it is just over 90 minutes old.
 
 PER-FACT RECENCY: Within a single catalyst, each item in "hardFacts" carries its own "minutesAgo".
 A long-running catalyst accumulates facts over time: facts with low minutesAgo are the latest breaking
@@ -779,19 +874,39 @@ Field guidance (the output shape itself is enforced for you):
 - summaryHeadline: one concise headline summarizing the net catalyst situation.
 - situationSummary: a paragraph explaining what happened, referencing direct and indirect paths, and explicitly noting which catalysts are breaking vs. background.
 - mainCatalysts[].eventId: MUST be set to the exact eventId of the corresponding event from the CONTEXT BUCKET.
-- mainCatalysts[].significance: An integer from 1 (low/negligible impact) to 10 (critical/existential disruption) reflecting the net impact of this catalyst event specifically for the ticker being analyzed.
+- mainCatalysts[].possibleInfluence: your intraday directional read for TICKER, not a copy-only
+  field from extraction. Take a side when the provided facts create a plausible same-session
+  skew for the selected ticker. Use "positive" for likely favorable attention/flow/earnings/
+  demand/read-through, "negative" for likely unfavorable pressure/risk/cost/regulatory/read-through,
+  "mixed" when meaningful positive and negative forces both exist, and "unclear" only when the
+  facts are too generic, the route is weak, or the ticker-specific read is genuinely balanced.
+  A tentative directional read is allowed when it is grounded in the event and phrased as possible.
+- mainCatalysts[].significance: An integer from 1 to 10 reflecting how likely the catalyst is to matter to this ticker in the current intraday session:
+  1-2 = background/no expected tape reaction; 3-4 = mild watch item; 5-6 = plausible tradable catalyst; 7-8 = clearly material direct or strongly routed catalyst; 9-10 = exceptional market-moving shock.
+  A fresh direct source-tagged contract, earnings/guidance item, regulatory/legal action, product/model launch, record-high/news-driven price move, major AI benchmark/paper, or supply-chain disruption should usually be 6-8, not 1-3.
 - mainCatalysts[].impactPath: the ordered chain of nodes describing how the event reaches the ticker.
-- uncertainties / watchItems: specific signals, announcements, or price markers for the trader to monitor next.
+- uncertainties / watchItems: specific information-only signals, announcements, or price markers to monitor next.
+
+Direct source-tagged events:
+- A direct event may be routed because the source explicitly tagged the watched ticker, even
+  when the headline names another company. In that case, use the bucket's sourceRelatedTickers,
+  impactPath, and reasonForRouting as routing evidence. Do not invent a supplier/customer
+  path, but do not suppress the event solely because the named company differs from TICKER.
+- If a direct event is routed from mentionedTickers rather than sourceRelatedTickers, the
+  article text explicitly named or alias-mapped the watched public company. Attribute the
+  claim to sourceName/headline when it is media commentary or a third-party report.
+- If the source does not explain the exact mechanism, say the source tagged it to TICKER and
+  keep the market-impact language tentative.
 
 Cross-impact path strength:
 Each cross-impact event includes a "pathStrength" field indicating routing confidence:
 - "strong" (pathConfidence >= 0.70): The exposure path is well-supported. Include this event in mainCatalysts.
 - "weak" (pathConfidence 0.45–0.69): The exposure path is marginal. Do NOT include in mainCatalysts.
-  Instead, reference it only in watchItems or uncertainties (e.g., "Watch for confirmation of [event] impact via [path]").
+  Instead, reference it only in watchItems or uncertainties (e.g., "Monitor whether [event] is confirmed as relevant via [path]").
 
 Strict Rules:
 1. ONLY utilize the facts provided in the prompt context. Do NOT invent companies, news, or metrics. Every claim in summaryHeadline, situationSummary, mainCatalysts, uncertainties, and watchItems must be traceable to the provided CONTEXT BUCKET. Do not introduce companies, products, regions, numbers, timelines, or causal relationships absent from the bucket.
-2. For indirect catalysts, explain only the supplied impactPath and reasonForRouting; do not invent additional graph edges.
+2. For direct catalysts, sourceRelatedTickers plus reasonForRouting are sufficient routing evidence. For indirect catalysts, explain only the supplied impactPath and reasonForRouting; do not invent additional graph edges.
 3. Weak cross-impact paths must remain in watchItems or uncertainties, not promoted as a high-confidence main catalyst.
 4. If there are no new events in the direct or cross-impact arrays, output the following:
    - summaryHeadline: "No new catalysts detected"
@@ -800,7 +915,11 @@ Strict Rules:
    - confidence: "low"
    - mainCatalysts: []
 5. Use tentative, risk-aware language. Never state market movements as guarantees. Use terms like "possible pressure", "potential risk", "tentative impact".
-6. Do NOT give investment or trading advice. Never write action language aimed at the trader, including "buy", "sell", "short", "enter", "exit", "take profit", "stop loss", "recommend", or urging the user to take action.
+6. Do not hide behind "unclear" when a daily trader would reasonably call the tape skew
+   positive, negative, or mixed from the provided facts. The label is an assessment, not a
+   guarantee.
+7. Do NOT give explicit trading instructions such as "buy", "sell", "short", "enter",
+   "exit", "take profit", "stop loss", or "recommend a trade".
 """
 
 
@@ -811,13 +930,28 @@ Evaluate the synthesis against the provided CONTEXT BUCKET and TICKER.
 
 Guidelines:
 1. GROUNDING: Every claim, company, number, timeline, product, and causal relationship mentioned in the synthesis must be explicitly supported by the events in the CONTEXT BUCKET. Paraphrasing is allowed, but do not extrapolate or invent facts.
-2. ADVICE: The synthesis must NOT contain explicit or implicit trading recommendations or action language. Forbidden words/phrases include "buy", "sell", "short", "enter", "exit", "take profit", "stop loss", "recommend", or urging the user to take action.
-3. PATH: For any indirect catalysts, the explanation of impact must match and be restricted to the supplied impactPath and reasonForRouting. Do not invent other transmission pathways or exposure links.
+2. ADVICE: For now, only fail clear explicit trading instructions: "buy", "sell",
+   "short", "enter", "exit", "take profit", "stop loss", or "recommend a trade".
+   Do NOT fail monitoring language such as "watch", "monitor", "track", "look for
+   confirmation", "price/volume reaction", "verify", or "check". Do NOT fail
+   watchItems merely because they tell the user what information to observe.
+3. DIRECT ROUTING: For direct catalysts, either a sourceRelatedTickers entry containing TICKER
+   or a mentionedTickers entry containing TICKER is valid grounding for ticker relevance.
+   Do NOT fail the output merely because the article headline or primary entity names another
+   company. Only fail it if the synthesis invents an unsupported business relationship,
+   number, or causal mechanism.
+4. PATH: For any indirect catalysts, the explanation of impact must match and be restricted to the supplied impactPath and reasonForRouting. Do not invent other transmission pathways or exposure links.
+5. WEAK INDIRECT PATHS: If a cross-impact event has pathStrength "weak", it must not appear in mainCatalysts. Mentioning it only as an uncertainty or neutral watchItem is acceptable.
+6. DIRECTIONAL READS: Do NOT force "unclear" just because the source does not explicitly say
+   the stock will move. A synthesis may label possibleInfluence/overallPossibleInfluence as
+   positive, negative, or mixed when the direction is a reasonable intraday read from the
+   provided event facts and supplied route, and the language remains tentative. Fail only if
+   it invents facts, unsupported mechanisms, or certainty.
 
 Output your judgment matching the OutputSafetyJudgeOut schema:
 - passes: true if groundingPassed, advicePassed, and pathPassed are all true. Otherwise false.
 - groundingPassed: true if all claims are grounded in context data.
-- advicePassed: true if there is no investment advice/action language.
+- advicePassed: true unless there is a clear explicit trading instruction.
 - pathPassed: true if cross-impact/indirect descriptions match the provided path and routing reasons.
 - defects: list specific defects/violations found.
 - regenerationInstruction: a concise correction instruction detailing what to fix/remove.
@@ -843,11 +977,47 @@ def judge_synthesis_output(ticker: str, bucket: Dict[str, Any], synthesis: Dict[
     
     user_prompt = f"TICKER: {ticker}\nCONTEXT BUCKET:\n{json.dumps(bucket, indent=2)}\n\nGENERATED SYNTHESIS:\n{json.dumps(eval_synthesis, indent=2)}"
     
-    return invoke_with_retry(
+    judge_result = invoke_with_retry(
         structured_judge,
         [SystemMessage(content=JUDGE_SYSTEM_PROMPT), HumanMessage(content=user_prompt)],
         label=f"safety judge for {ticker}"
     )
+    return _relax_language_only_judge_failure(judge_result, eval_synthesis)
+
+
+def _contains_explicit_trade_instruction(synthesis: Dict[str, Any]) -> bool:
+    text = json.dumps(synthesis, ensure_ascii=False).lower()
+    forbidden_patterns = [
+        r"\b(?:should|must|consider|recommend(?:ed|s|ing)?\s+to)\s+(?:buy|sell|short|enter|exit)\b",
+        r"\b(?:buy|sell|short)\s+(?:the\s+)?(?:stock|shares|ticker|position)\b",
+        r"\benter\s+(?:a\s+)?(?:position|trade)\b",
+        r"\bexit\s+(?:the\s+)?(?:position|trade)\b",
+        r"\btake profit\b",
+        r"\bstop loss\b",
+        r"\brecommend(?:ed|s|ing)?\s+(?:a\s+)?trade\b",
+    ]
+    return any(re.search(pattern, text) for pattern in forbidden_patterns)
+
+
+def _relax_language_only_judge_failure(
+    judge_result: OutputSafetyJudgeOut,
+    synthesis: Dict[str, Any],
+) -> OutputSafetyJudgeOut:
+    """Avoid degrading useful briefings over neutral watch/monitor phrasing."""
+    if judge_result.advicePassed or _contains_explicit_trade_instruction(synthesis):
+        return judge_result
+
+    relaxed = judge_result.model_copy(deep=True)
+    relaxed.advicePassed = True
+    relaxed.defects = [
+        defect for defect in relaxed.defects
+        if not re.search(r"\b(advice|recommend|watch|monitor|trading recommendation|action language)\b", defect, re.IGNORECASE)
+    ]
+    relaxed.passes = relaxed.groundingPassed and relaxed.pathPassed
+    if relaxed.passes:
+        relaxed.defects = []
+        relaxed.regenerationInstruction = ""
+    return relaxed
 
 def build_degraded_synthesis(ticker: str, reason: str, source_ids: List[str], source_urls: List[str]) -> Dict[str, Any]:
     return {
@@ -954,22 +1124,32 @@ def build_ticker_buckets_for_synthesis(state: WorkflowState, restore_ledger: boo
             "eventId": event_id,
             "catalystId": cand.get("catalystId"),
             "eventType": event["eventType"],
+            "relationshipType": cand["relationshipType"],
             "headline": event.get("sourceHeadline", ""),
+            "sourceName": event.get("sourceName", ""),
             "eventSummary": event["eventSummary"],
             "hardFacts": [f["fact"] for f in facts_timed],
             "hardFactsTimed": facts_timed,
+            "mentionedTickers": event.get("mentionedTickers", []),
+            "entities": event.get("entities", []),
+            "eventTags": event.get("eventTags", []),
+            "regions": event.get("regions", []),
+            "sectors": event.get("sectors", []),
+            "commodities": event.get("commodities", []),
+            "technologyThemes": event.get("technologyThemes", []),
             "possibleDirectionalPressure": event["possibleDirectionalPressure"],
             "sourceArticleIds": event["sourceArticleIds"],
+            "sourceRelatedTickers": event.get("relatedTickers", []),
             "sourceUrl": event.get("sourceUrl", ""),
             "uncertaintyNotes": event.get("uncertaintyNotes", []),
             "publishedAt": event.get("publishedAt", ""),
+            "impactPath": cand.get("impactPath", [ticker]),
+            "reasonForRouting": cand.get("reasonForRouting", f"Directly tagged in news source for ticker {ticker}."),
         }
 
         if cand["relationshipType"] == "direct":
             ticker_buckets[ticker]["directEvents"].append(event_entry)
         else:
-            event_entry["impactPath"] = cand["impactPath"]
-            event_entry["reasonForRouting"] = cand["reasonForRouting"]
             event_entry["pathConfidence"] = cand["pathConfidence"]
             event_entry["pathStrength"] = cand.get("pathStrength", "strong")
             ticker_buckets[ticker]["crossImpactEvents"].append(event_entry)
@@ -1001,22 +1181,36 @@ def build_ticker_buckets_for_synthesis(state: WorkflowState, restore_ledger: boo
                 "eventId": f"evt_{cat_id}",
                 "catalystId": cat_id,
                 "eventType": entry["eventType"],
+                "relationshipType": rel_type,
                 "headline": entry.get("sourceHeadline", ""),
+                "sourceName": entry.get("sourceName", ""),
                 "eventSummary": entry["canonicalSummary"],
                 "hardFacts": [f["fact"] for f in recon_facts_timed],
                 "hardFactsTimed": recon_facts_timed,
+                "mentionedTickers": [ticker],
+                "entities": [],
+                "eventTags": [],
+                "regions": [],
+                "sectors": [],
+                "commodities": [],
+                "technologyThemes": [],
                 "possibleDirectionalPressure": entry.get("possibleDirectionalPressure", "unclear"),
                 "sourceArticleIds": entry.get("memberArticleIds", []),
+                "sourceRelatedTickers": [ticker],
                 "sourceUrl": entry.get("sourceUrl", ""),
                 "uncertaintyNotes": entry.get("uncertaintyNotes", []),
                 "publishedAt": recon_published,
+                "impactPath": [ticker] if rel_type == "direct" else [entry["eventType"], ticker],
+                "reasonForRouting": (
+                    f"Restored direct catalyst memory for ticker {ticker}."
+                    if rel_type == "direct"
+                    else "Restored from exposure graph memory."
+                ),
             }
 
             if rel_type == "direct":
                 ticker_buckets[ticker]["directEvents"].append(reconstructed_entry)
             else:
-                reconstructed_entry["impactPath"] = [entry["eventType"], ticker]
-                reconstructed_entry["reasonForRouting"] = "Restored from exposure graph memory."
                 reconstructed_entry["pathConfidence"] = 1.0
                 reconstructed_entry["pathStrength"] = "strong"
                 ticker_buckets[ticker]["crossImpactEvents"].append(reconstructed_entry)
@@ -1080,6 +1274,214 @@ def _source_refs_for_bucket(bucket: Dict[str, Any]) -> Tuple[List[str], List[str
         if event.get("sourceUrl"):
             src_urls.append(event["sourceUrl"])
     return src_ids, list(set(src_urls))
+
+
+def _event_text_for_scoring(event: Dict[str, Any]) -> str:
+    return " ".join(
+        str(part)
+        for part in [
+            event.get("headline", ""),
+            event.get("eventSummary", ""),
+            " ".join(str(f.get("fact", f)) if isinstance(f, dict) else str(f) for f in event.get("hardFacts", [])),
+            " ".join(event.get("eventTags", [])),
+            " ".join(event.get("technologyThemes", [])),
+        ]
+    ).lower()
+
+
+def _coerce_minutes_ago(event: Dict[str, Any]) -> int:
+    try:
+        return int(event.get("minutesAgo", -1))
+    except Exception:
+        return -1
+
+
+def _recency_label(event: Dict[str, Any]) -> str:
+    minutes_ago = _coerce_minutes_ago(event)
+    if 0 <= minutes_ago < 30:
+        return "breaking"
+    if 0 <= minutes_ago <= 90:
+        return "recent"
+    return "background"
+
+
+def _source_tagged_to_different_mentioned_company(event: Dict[str, Any], ticker: str) -> bool:
+    source_related = {t.upper() for t in event.get("sourceRelatedTickers", [])}
+    mentioned = {t.upper() for t in event.get("mentionedTickers", [])}
+    ticker_upper = ticker.upper()
+    return ticker_upper in source_related and bool(mentioned) and ticker_upper not in mentioned
+
+
+def _infer_intraday_pressure(event: Dict[str, Any], ticker: str, current: str = "unclear") -> str:
+    """Preserve the model's ticker-level directional read without keyword forcing."""
+    if current in {"positive", "negative", "mixed"}:
+        return current
+
+    event_pressure = event.get("possibleDirectionalPressure", "unclear")
+    if event_pressure in {"positive", "negative", "mixed"}:
+        return event_pressure
+
+    return "unclear"
+
+
+def _default_catalyst_from_event(event: Dict[str, Any], ticker: str) -> Dict[str, Any]:
+    relationship = event.get("relationshipType", "direct")
+    pressure = _infer_intraday_pressure(event, ticker)
+    text = _event_text_for_scoring(event)
+    high_impact = any(term in text for term in (
+        "contract", "government", "award", "wins", "billion", "million", "$",
+        "earnings", "guidance", "regulatory", "lawsuit", "launch", "benchmark",
+        "model", "paper", "supply", "halt", "delay", "disruption",
+    ))
+    minutes_ago = _coerce_minutes_ago(event)
+
+    if relationship == "direct":
+        significance = 5 if pressure == "unclear" else 6
+        if _source_tagged_to_different_mentioned_company(event, ticker) and pressure == "unclear":
+            significance = 4
+        if high_impact or (0 <= minutes_ago < 30):
+            significance = max(significance, 7 if pressure != "unclear" else 5)
+        confidence = "medium" if pressure != "unclear" else "tentative"
+    else:
+        significance = 5 if pressure != "unclear" else 3
+        confidence = "tentative"
+
+    return {
+        "eventId": event["eventId"],
+        "label": event.get("headline") or event.get("eventSummary", "Catalyst event"),
+        "relationshipType": relationship,
+        "eventType": event.get("eventType", "other"),
+        "possibleInfluence": pressure,
+        "confidence": confidence,
+        "recency": _recency_label(event),
+        "impactPath": event.get("impactPath") or ([ticker] if relationship == "direct" else []),
+        "significance": significance,
+    }
+
+
+def _repair_synthesis_structure(synthesis: Dict[str, Any], bucket: Dict[str, Any], ticker: str) -> Dict[str, Any]:
+    """Make deterministic contract repairs before the LLM judge sees the briefing."""
+    events_by_id = {
+        e.get("eventId"): e
+        for e in bucket.get("directEvents", []) + bucket.get("crossImpactEvents", [])
+    }
+
+    repaired_main = []
+    seen_event_ids = set()
+    weak_watch_items = []
+    for catalyst in synthesis.get("mainCatalysts", []) or []:
+        event_id = catalyst.get("eventId")
+        event = events_by_id.get(event_id)
+        if not event:
+            continue
+        if event.get("relationshipType") == "indirect" and event.get("pathStrength") != "strong":
+            path = " -> ".join(event.get("impactPath", []))
+            weak_watch_items.append(
+                f"Monitor whether '{event.get('headline') or event.get('eventSummary')}' becomes relevant to {ticker} via {path}."
+            )
+            continue
+
+        catalyst["relationshipType"] = event.get("relationshipType", catalyst.get("relationshipType"))
+        catalyst["eventType"] = event.get("eventType", catalyst.get("eventType"))
+        catalyst["impactPath"] = event.get("impactPath") or catalyst.get("impactPath", [])
+        catalyst["possibleInfluence"] = _infer_intraday_pressure(
+            event,
+            ticker,
+            catalyst.get("possibleInfluence", event.get("possibleDirectionalPressure", "unclear")),
+        )
+        catalyst["recency"] = catalyst.get("recency") or _recency_label(event)
+        repaired_main.append(catalyst)
+        seen_event_ids.add(event_id)
+
+    # Source-tagged / mentioned-ticker direct events are the highest-trust input bucket.
+    # If the model omitted them while discussing weak macro graph paths, put them back.
+    missing_direct = [
+        e for e in bucket.get("directEvents", [])
+        if e.get("eventId") not in seen_event_ids
+    ]
+    missing_direct.sort(key=lambda e: (_coerce_minutes_ago(e) if _coerce_minutes_ago(e) >= 0 else 10_000))
+    for event in reversed(missing_direct[:3]):
+        repaired_main.insert(0, _default_catalyst_from_event(event, ticker))
+        seen_event_ids.add(event.get("eventId"))
+
+    synthesis["mainCatalysts"] = repaired_main
+
+    watch_items = list(synthesis.get("watchItems", []) or [])
+    for item in weak_watch_items:
+        if item not in watch_items:
+            watch_items.append(item)
+    synthesis["watchItems"] = watch_items[:6]
+
+    influences = [c.get("possibleInfluence") for c in repaired_main]
+    directional = {p for p in influences if p in {"positive", "negative", "mixed"}}
+    if "mixed" in directional or ("positive" in directional and "negative" in directional):
+        synthesis["overallPossibleInfluence"] = "mixed"
+    elif "positive" in directional:
+        synthesis["overallPossibleInfluence"] = "positive"
+    elif "negative" in directional:
+        synthesis["overallPossibleInfluence"] = "negative"
+    elif repaired_main:
+        synthesis["overallPossibleInfluence"] = "unclear"
+
+    if repaired_main and synthesis.get("confidence") == "low":
+        synthesis["confidence"] = "medium"
+
+    return synthesis
+
+
+def _normalize_synthesis_significance(synthesis: Dict[str, Any], bucket: Dict[str, Any]) -> Dict[str, Any]:
+    """Apply conservative intraday materiality floors to LLM significance scores.
+
+    The model still chooses the score, but this prevents obviously material, fresh,
+    source-tagged direct catalysts from being mislabeled as near-noise.
+    """
+    events_by_id = {
+        e.get("eventId"): e
+        for e in bucket.get("directEvents", []) + bucket.get("crossImpactEvents", [])
+    }
+    high_impact_terms = (
+        "contract", "government", "award", "wins", "billion", "million", "$",
+        "earnings", "guidance", "revenue", "profit", "margin", "all-time high",
+        "record high", "stock hits", "price target", "sec", "regulatory", "lawsuit",
+        "launch", "unveils", "benchmark", "outperforms", "model", "paper",
+        "supply", "halt", "delay", "disruption",
+    )
+
+    for catalyst in synthesis.get("mainCatalysts", []) or []:
+        event = events_by_id.get(catalyst.get("eventId"))
+        if not event:
+            continue
+
+        text = _event_text_for_scoring(event)
+        pressure = catalyst.get("possibleInfluence") or event.get("possibleDirectionalPressure")
+        relationship = catalyst.get("relationshipType") or event.get("relationshipType")
+        minutes_ago = event.get("minutesAgo", -1)
+        has_direction = pressure in {"positive", "negative", "mixed"}
+        has_high_impact_term = any(term in text for term in high_impact_terms)
+
+        floor = 1
+        if relationship == "direct" and has_direction:
+            floor = max(floor, 6)
+            if has_high_impact_term or (isinstance(minutes_ago, int) and 0 <= minutes_ago < 30):
+                floor = max(floor, 7)
+        elif relationship == "indirect" and has_direction:
+            if event.get("pathStrength") == "strong":
+                floor = max(floor, 5)
+            if event.get("pathStrength") == "strong" and has_high_impact_term:
+                floor = max(floor, 6)
+
+        try:
+            current = int(catalyst.get("significance", 1))
+        except Exception:
+            current = 1
+        catalyst["significance"] = max(1, min(10, max(current, floor)))
+
+    return synthesis
+
+
+def _postprocess_synthesis(synthesis: Dict[str, Any], bucket: Dict[str, Any], ticker: str) -> Dict[str, Any]:
+    repaired = _repair_synthesis_structure(synthesis, bucket, ticker)
+    return _normalize_synthesis_significance(repaired, bucket)
 
 
 def _mock_synthesis_for_ticker(ticker: str, bucket: Dict[str, Any], state: WorkflowState) -> Dict[str, Any]:
@@ -1182,7 +1584,7 @@ def _mock_synthesis_for_ticker(ticker: str, bucket: Dict[str, Any], state: Workf
         "sourceEventIds": src_ids,
         "sourceArticleUrls": src_urls,
         "notFinancialAdvice": True,
-        "complianceDisclaimer": "This is an informational briefing, not financial advice. The impact assessment is tentative and may be incomplete. Verify with market data and official sources before making decisions.",
+        "complianceDisclaimer": "This is an informational briefing, not financial advice. The impact assessment is tentative and may be incomplete; market data and official sources can change the read.",
         "guardrailMetadata": {
             "judgeStatus": "skipped_no_llm_mock_mode",
             "judgeAttempts": 0,
@@ -1256,13 +1658,13 @@ def synthesize_one_ticker_node(state: WorkflowState) -> Dict[str, Any]:
             [SystemMessage(content=SYNTHESIS_SYSTEM_PROMPT), HumanMessage(content=user_prompt)],
             label=f"synthesis for {ticker}",
         )
-        synthesis = result.model_dump()
+        synthesis = _postprocess_synthesis(result.model_dump(), annotated_bucket, ticker)
         synthesis["summaryId"] = f"sum_{ticker}_{int(datetime_now().timestamp())}"
         synthesis["ticker"] = ticker
         synthesis["sourceEventIds"] = src_ids
         synthesis["sourceArticleUrls"] = src_urls
         synthesis["notFinancialAdvice"] = True
-        synthesis["complianceDisclaimer"] = "This is an informational briefing, not financial advice. The net impact assessment is tentative and may be incomplete. Verify with market data and official sources before making decisions."
+        synthesis["complianceDisclaimer"] = "This is an informational briefing, not financial advice. The net impact assessment is tentative and may be incomplete; market data and official sources can change the read."
 
         try:
             judge_res = judge_synthesis_output(ticker, annotated_bucket, synthesis)
@@ -1303,20 +1705,20 @@ def synthesize_one_ticker_node(state: WorkflowState) -> Dict[str, Any]:
                     "regeneration_instruction": judge_res.regenerationInstruction,
                 })
 
-            regen_system_prompt = SYNTHESIS_SYSTEM_PROMPT + f"\n\nCRITICAL CORRECTION REQUIRED:\nYour previous output was evaluated by a safety guardrail and failed due to the following defects: {', '.join(judge_res.defects)}.\n\nCorrection instructions:\n{judge_res.regenerationInstruction}\n\nStrictly address these defects, ensuring the output is perfectly grounded in the context data, contains no advice/action language, and indirect paths match the routing exactly."
+            regen_system_prompt = SYNTHESIS_SYSTEM_PROMPT + f"\n\nCRITICAL CORRECTION REQUIRED:\nYour previous output was evaluated by a safety guardrail and failed due to the following defects: {', '.join(judge_res.defects)}.\n\nCorrection instructions:\n{judge_res.regenerationInstruction}\n\nStrictly address these defects, ensuring the output is perfectly grounded in the context data and indirect paths match the routing exactly."
             print(f"  [guardrail] Attempting regeneration for {ticker}...")
             result_regen: SynthesisOut = invoke_with_retry(
                 structured_llm,
                 [SystemMessage(content=regen_system_prompt), HumanMessage(content=user_prompt)],
                 label=f"regeneration for {ticker}",
             )
-            synthesis_regen = result_regen.model_dump()
+            synthesis_regen = _postprocess_synthesis(result_regen.model_dump(), annotated_bucket, ticker)
             synthesis_regen["summaryId"] = f"sum_{ticker}_{int(datetime_now().timestamp())}"
             synthesis_regen["ticker"] = ticker
             synthesis_regen["sourceEventIds"] = src_ids
             synthesis_regen["sourceArticleUrls"] = src_urls
             synthesis_regen["notFinancialAdvice"] = True
-            synthesis_regen["complianceDisclaimer"] = "This is an informational briefing, not financial advice. The net impact assessment is tentative and may be incomplete. Verify with market data and official sources before making decisions."
+            synthesis_regen["complianceDisclaimer"] = "This is an informational briefing, not financial advice. The net impact assessment is tentative and may be incomplete; market data and official sources can change the read."
 
             judge_res_2 = judge_synthesis_output(ticker, annotated_bucket, synthesis_regen)
             if span and span.is_recording():
@@ -1535,22 +1937,32 @@ def run_synthesis(state: WorkflowState, restore_ledger: bool, restore_indirect: 
             "eventId": event_id,
             "catalystId": cand.get("catalystId"),
             "eventType": event["eventType"],
+            "relationshipType": cand["relationshipType"],
             "headline": event.get("sourceHeadline", ""),
+            "sourceName": event.get("sourceName", ""),
             "eventSummary": event["eventSummary"],
             "hardFacts": [f["fact"] for f in facts_timed],
             "hardFactsTimed": facts_timed,
+            "mentionedTickers": event.get("mentionedTickers", []),
+            "entities": event.get("entities", []),
+            "eventTags": event.get("eventTags", []),
+            "regions": event.get("regions", []),
+            "sectors": event.get("sectors", []),
+            "commodities": event.get("commodities", []),
+            "technologyThemes": event.get("technologyThemes", []),
             "possibleDirectionalPressure": event["possibleDirectionalPressure"],
             "sourceArticleIds": event["sourceArticleIds"],
+            "sourceRelatedTickers": event.get("relatedTickers", []),
             "sourceUrl": event.get("sourceUrl", ""),
             "uncertaintyNotes": event.get("uncertaintyNotes", []),
-            "publishedAt": event.get("publishedAt", "")
+            "publishedAt": event.get("publishedAt", ""),
+            "impactPath": cand.get("impactPath", [ticker]),
+            "reasonForRouting": cand.get("reasonForRouting", f"Directly tagged in news source for ticker {ticker}."),
         }
 
         if cand["relationshipType"] == "direct":
             ticker_buckets[ticker]["directEvents"].append(event_entry)
         else:
-            event_entry["impactPath"] = cand["impactPath"]
-            event_entry["reasonForRouting"] = cand["reasonForRouting"]
             event_entry["pathConfidence"] = cand["pathConfidence"]
             event_entry["pathStrength"] = cand.get("pathStrength", "strong")
             ticker_buckets[ticker]["crossImpactEvents"].append(event_entry)
@@ -1594,22 +2006,36 @@ def run_synthesis(state: WorkflowState, restore_ledger: bool, restore_indirect: 
                 "eventId": f"evt_{cat_id}",
                 "catalystId": cat_id,
                 "eventType": entry["eventType"],
+                "relationshipType": rel_type,
                 "headline": entry.get("sourceHeadline", ""),
+                "sourceName": entry.get("sourceName", ""),
                 "eventSummary": entry["canonicalSummary"],
                 "hardFacts": [f["fact"] for f in recon_facts_timed],
                 "hardFactsTimed": recon_facts_timed,
+                "mentionedTickers": [ticker],
+                "entities": [],
+                "eventTags": [],
+                "regions": [],
+                "sectors": [],
+                "commodities": [],
+                "technologyThemes": [],
                 "possibleDirectionalPressure": entry.get("possibleDirectionalPressure", "unclear"),
                 "sourceArticleIds": entry.get("memberArticleIds", []),
+                "sourceRelatedTickers": [ticker],
                 "sourceUrl": entry.get("sourceUrl", ""),
                 "uncertaintyNotes": entry.get("uncertaintyNotes", []),
-                "publishedAt": recon_published
+                "publishedAt": recon_published,
+                "impactPath": [ticker] if rel_type == "direct" else [entry["eventType"], ticker],
+                "reasonForRouting": (
+                    f"Restored direct catalyst memory for ticker {ticker}."
+                    if rel_type == "direct"
+                    else "Restored from exposure graph memory."
+                ),
             }
             
             if rel_type == "direct":
                 ticker_buckets[ticker]["directEvents"].append(reconstructed_entry)
             else:
-                reconstructed_entry["impactPath"] = [entry["eventType"], ticker]
-                reconstructed_entry["reasonForRouting"] = "Restored from exposure graph memory."
                 reconstructed_entry["pathConfidence"] = 1.0
                 reconstructed_entry["pathStrength"] = "strong"
                 ticker_buckets[ticker]["crossImpactEvents"].append(reconstructed_entry)
@@ -1774,7 +2200,7 @@ def run_synthesis(state: WorkflowState, restore_ledger: bool, restore_indirect: 
                 "sourceEventIds": src_ids,
                 "sourceArticleUrls": src_urls,
                 "notFinancialAdvice": True,
-                "complianceDisclaimer": "This is an informational briefing, not financial advice. The impact assessment is tentative and may be incomplete. Verify with market data and official sources before making decisions.",
+                "complianceDisclaimer": "This is an informational briefing, not financial advice. The impact assessment is tentative and may be incomplete; market data and official sources can change the read.",
                 "guardrailMetadata": {
                     "judgeStatus": "skipped_no_llm_mock_mode",
                     "judgeAttempts": 0,
@@ -1795,46 +2221,7 @@ def run_synthesis(state: WorkflowState, restore_ledger: bool, restore_indirect: 
 
     llm = get_llm()
 
-    synthesis_system_prompt = """You are a professional financial synthesis analyst supporting a discretionary intraday trader. 
-Your task is to review the direct and indirect catalyst events for a specific watched ticker and write a market-impact synthesis.
-
-Each event in the context includes a "minutesAgo" field indicating how many minutes ago it was published relative to now.
-RECENCY RULE: Weight events published more recently (lower minutesAgo) more heavily in your assessment.
-For intraday trading, events < 30 minutes old are HIGH priority. Events 30-90 minutes old are MEDIUM priority.
-Events > 90 minutes old are BACKGROUND context — still relevant but should not dominate the headline.
-
-PER-FACT RECENCY: Within a single catalyst, each item in "hardFacts" carries its own "minutesAgo".
-A long-running catalyst accumulates facts over time: facts with low minutesAgo are the latest breaking
-developments and should drive the headline, while older facts in the same catalyst are prior context.
-Do not treat an older fact as if it just broke simply because it shares a catalyst with a fresh update.
-
-Field guidance (the output shape itself is enforced for you):
-- summaryHeadline: one concise headline summarizing the net catalyst situation.
-- situationSummary: a paragraph explaining what happened, referencing direct and indirect paths, and explicitly noting which catalysts are breaking vs. background.
-- mainCatalysts[].eventId: MUST be set to the exact eventId of the corresponding event from the CONTEXT BUCKET.
-- mainCatalysts[].significance: An integer from 1 (low/negligible impact) to 10 (critical/existential disruption) reflecting the net impact of this catalyst event specifically for the ticker being analyzed.
-- mainCatalysts[].impactPath: the ordered chain of nodes describing how the event reaches the ticker.
-- uncertainties / watchItems: specific signals, announcements, or price markers for the trader to monitor next.
-
-Cross-impact path strength:
-Each cross-impact event includes a "pathStrength" field indicating routing confidence:
-- "strong" (pathConfidence >= 0.70): The exposure path is well-supported. Include this event in mainCatalysts.
-- "weak" (pathConfidence 0.45–0.69): The exposure path is marginal. Do NOT include in mainCatalysts.
-  Instead, reference it only in watchItems or uncertainties (e.g., "Watch for confirmation of [event] impact via [path]").
-
-Strict Rules:
-1. ONLY utilize the facts provided in the prompt context. Do NOT invent companies, news, or metrics. Every claim in summaryHeadline, situationSummary, mainCatalysts, uncertainties, and watchItems must be traceable to the provided CONTEXT BUCKET. Do not introduce companies, products, regions, numbers, timelines, or causal relationships absent from the bucket.
-2. For indirect catalysts, explain only the supplied impactPath and reasonForRouting; do not invent additional graph edges.
-3. Weak cross-impact paths must remain in watchItems or uncertainties, not promoted as a high-confidence main catalyst.
-4. If there are no new events in the direct or cross-impact arrays, output the following:
-   - summaryHeadline: "No new catalysts detected"
-   - situationSummary: "No new catalysts detected for this ticker in the latest refresh."
-   - overallPossibleInfluence: "unclear"
-   - confidence: "low"
-   - mainCatalysts: []
-5. Use tentative, risk-aware language. Never state market movements as guarantees. Use terms like "possible pressure", "potential risk", "tentative impact".
-6. Do NOT give investment or trading advice. Never write action language aimed at the trader, including "buy", "sell", "short", "enter", "exit", "take profit", "stop loss", "recommend", or urging the user to take action.
-"""
+    synthesis_system_prompt = SYNTHESIS_SYSTEM_PROMPT
 
     l3_judge_fail_count = 0
     l3_regeneration_count = 0
@@ -1906,7 +2293,7 @@ Strict Rules:
                 [SystemMessage(content=synthesis_system_prompt), HumanMessage(content=user_prompt)],
                 label=f"synthesis for {ticker}",
             )
-            synthesis = result.model_dump()
+            synthesis = _postprocess_synthesis(result.model_dump(), annotated_bucket, ticker)
 
             synthesis["summaryId"] = f"sum_{ticker}_{int(datetime_now().timestamp())}"
             synthesis["ticker"] = ticker
@@ -1925,7 +2312,7 @@ Strict Rules:
             synthesis["sourceEventIds"] = src_ids
             synthesis["sourceArticleUrls"] = list(set(src_urls))
             synthesis["notFinancialAdvice"] = True
-            synthesis["complianceDisclaimer"] = "This is an informational briefing, not financial advice. The net impact assessment is tentative and may be incomplete. Verify with market data and official sources before making decisions."
+            synthesis["complianceDisclaimer"] = "This is an informational briefing, not financial advice. The net impact assessment is tentative and may be incomplete; market data and official sources can change the read."
             
             # --- GUARDRAIL SAFETY JUDGE LOOP ---
             try:
@@ -1972,7 +2359,7 @@ Strict Rules:
                             "regeneration_instruction": judge_res.regenerationInstruction
                         })
                     
-                    regen_system_prompt = synthesis_system_prompt + f"\n\nCRITICAL CORRECTION REQUIRED:\nYour previous output was evaluated by a safety guardrail and failed due to the following defects: {', '.join(judge_res.defects)}.\n\nCorrection instructions:\n{judge_res.regenerationInstruction}\n\nStrictly address these defects, ensuring the output is perfectly grounded in the context data, contains no advice/action language, and indirect paths match the routing exactly."
+                    regen_system_prompt = synthesis_system_prompt + f"\n\nCRITICAL CORRECTION REQUIRED:\nYour previous output was evaluated by a safety guardrail and failed due to the following defects: {', '.join(judge_res.defects)}.\n\nCorrection instructions:\n{judge_res.regenerationInstruction}\n\nStrictly address these defects, ensuring the output is perfectly grounded in the context data and indirect paths match the routing exactly."
                     
                     print(f"  [guardrail] Attempting regeneration for {ticker}...")
                     result_regen: SynthesisOut = invoke_with_retry(
@@ -1980,13 +2367,13 @@ Strict Rules:
                         [SystemMessage(content=regen_system_prompt), HumanMessage(content=user_prompt)],
                         label=f"regeneration for {ticker}"
                     )
-                    synthesis_regen = result_regen.model_dump()
+                    synthesis_regen = _postprocess_synthesis(result_regen.model_dump(), annotated_bucket, ticker)
                     synthesis_regen["summaryId"] = f"sum_{ticker}_{int(datetime_now().timestamp())}"
                     synthesis_regen["ticker"] = ticker
                     synthesis_regen["sourceEventIds"] = src_ids
                     synthesis_regen["sourceArticleUrls"] = list(set(src_urls))
                     synthesis_regen["notFinancialAdvice"] = True
-                    synthesis_regen["complianceDisclaimer"] = "This is an informational briefing, not financial advice. The net impact assessment is tentative and may be incomplete. Verify with market data and official sources before making decisions."
+                    synthesis_regen["complianceDisclaimer"] = "This is an informational briefing, not financial advice. The net impact assessment is tentative and may be incomplete; market data and official sources can change the read."
                     
                     judge_res_2 = judge_synthesis_output(ticker, annotated_bucket, synthesis_regen)
                     
@@ -2105,11 +2492,14 @@ def run_compliance_gate(state: WorkflowState) -> Dict[str, Any]:
         
     # Simple rule-based compliance cleaner to ensure no buy/sell recommendations slip through
     forbidden_patterns = [
-        (r'\bbuy\b', 'monitor'),
-        (r'\bsell\b', 'assess'),
-        (r'\bshould short\b', 'may face downward sentiment pressure'),
-        (r'\binvest in\b', 'watch exposure to'),
-        (r'\bwe recommend\b', 'it may be useful to')
+        (r'\bshould\s+buy\s+(?:the\s+)?(?:stock|shares|ticker)\b', 'could show positive pressure'),
+        (r'\bshould\s+sell\s+(?:the\s+)?(?:stock|shares|ticker)\b', 'could show negative pressure'),
+        (r'\bshould\s+short\s+(?:the\s+)?(?:stock|shares|ticker)\b', 'may face downward sentiment pressure'),
+        (r'\benter\s+(?:a\s+)?(?:position|trade)\b', 'monitor the catalyst'),
+        (r'\bexit\s+(?:the\s+)?(?:position|trade)\b', 'reassess the catalyst'),
+        (r'\btake profit\b', 'monitor follow-through'),
+        (r'\bstop loss\b', 'risk marker'),
+        (r'\bwe recommend\s+(?:a\s+)?trade\b', 'the briefing flags a catalyst'),
     ]
     
     cleaned_syntheses = {}
