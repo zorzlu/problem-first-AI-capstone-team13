@@ -14,7 +14,8 @@ from typing import Annotated, TypedDict, List, Dict, Any, Tuple, Literal
 from pydantic import BaseModel, Field
 from langchain_core.messages import HumanMessage, SystemMessage
 from langgraph.types import Send
-from backend.config import get_llm, get_llm_fast, FRESHNESS_LOOKBACK_MINUTES
+from backend.config import FRESHNESS_LOOKBACK_MINUTES
+from backend.llm import get_extraction_llm, get_synthesis_llm, get_judge_llm, has_llm_for_step
 from backend.ingestion import get_news_payload
 from backend.routing import route_cross_impact, get_cross_impact_queries
 from backend.memory import check_ledger_decision
@@ -485,9 +486,7 @@ def run_extraction(state: WorkflowState, system_prompt: str, focus_block: str) -
         print("No articles fetched to extract events from.")
         return {"canonical_events": []}
         
-    # Check if API Keys are set
-    from backend.config import GEMINI_API_KEY, OPENAI_API_KEY
-    use_mock = not (GEMINI_API_KEY or OPENAI_API_KEY)
+    use_mock = not has_llm_for_step("extraction")
     
     if use_mock:
         print("No LLM API keys found. Falling back to pre-baked canonical event extraction.")
@@ -531,7 +530,7 @@ def run_extraction(state: WorkflowState, system_prompt: str, focus_block: str) -
             })
         return {"canonical_events": canonical_events}
 
-    llm = get_llm_fast()
+    llm = get_extraction_llm()
 
     # Reference time for computing article age
     ref_time = datetime_now()
@@ -958,8 +957,7 @@ Output your judgment matching the OutputSafetyJudgeOut schema:
 """
 
 def judge_synthesis_output(ticker: str, bucket: Dict[str, Any], synthesis: Dict[str, Any]) -> OutputSafetyJudgeOut:
-    from backend.config import GEMINI_API_KEY, OPENAI_API_KEY
-    if not (GEMINI_API_KEY or OPENAI_API_KEY):
+    if not has_llm_for_step("judge"):
         return OutputSafetyJudgeOut(
             passes=True,
             groundingPassed=True,
@@ -969,7 +967,7 @@ def judge_synthesis_output(ticker: str, bucket: Dict[str, Any], synthesis: Dict[
             regenerationInstruction=""
         )
     
-    llm = get_llm()
+    llm = get_judge_llm()
     structured_judge = llm.with_structured_output(OutputSafetyJudgeOut)
     
     # Exclude guardrailMetadata from evaluated synthesis to avoid contamination
@@ -1608,8 +1606,7 @@ def synthesize_one_ticker_node(state: WorkflowState) -> Dict[str, Any]:
 
     counts = {"judge_fail": 0, "regeneration": 0, "degrade": 0}
 
-    from backend.config import GEMINI_API_KEY, OPENAI_API_KEY
-    use_mock = not (GEMINI_API_KEY or OPENAI_API_KEY)
+    use_mock = not has_llm_for_step("synthesis")
 
     if use_mock:
         synthesis = _mock_synthesis_for_ticker(ticker, bucket, state)
@@ -1651,7 +1648,7 @@ def synthesize_one_ticker_node(state: WorkflowState) -> Dict[str, Any]:
     src_ids, src_urls = _source_refs_for_bucket(bucket)
 
     try:
-        llm = get_llm()
+        llm = get_synthesis_llm()
         structured_llm = llm.with_structured_output(SynthesisOut)
         result: SynthesisOut = invoke_with_retry(
             structured_llm,
@@ -2050,9 +2047,7 @@ def run_synthesis(state: WorkflowState, restore_ledger: bool, restore_indirect: 
     # 2. Run synthesis via LLM (or mock) for each ticker
     ticker_syntheses = {}
     
-    # Check if API Keys are set
-    from backend.config import GEMINI_API_KEY, OPENAI_API_KEY
-    use_mock = not (GEMINI_API_KEY or OPENAI_API_KEY)
+    use_mock = not has_llm_for_step("synthesis")
     
     ref_time = datetime_now()
 
@@ -2219,7 +2214,7 @@ def run_synthesis(state: WorkflowState, restore_ledger: bool, restore_indirect: 
 
         return {"ticker_buckets": ticker_buckets, "ticker_syntheses": ticker_syntheses}
 
-    llm = get_llm()
+    llm = get_synthesis_llm()
 
     synthesis_system_prompt = SYNTHESIS_SYSTEM_PROMPT
 
@@ -2316,8 +2311,7 @@ def run_synthesis(state: WorkflowState, restore_ledger: bool, restore_indirect: 
             
             # --- GUARDRAIL SAFETY JUDGE LOOP ---
             try:
-                from backend.config import GEMINI_API_KEY, OPENAI_API_KEY
-                has_keys = bool(GEMINI_API_KEY or OPENAI_API_KEY)
+                has_keys = has_llm_for_step("judge")
                 
                 judge_res = judge_synthesis_output(ticker, annotated_bucket, synthesis)
                 

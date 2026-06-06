@@ -31,7 +31,7 @@
       "windows": {
         "command": "${workspaceFolder}/backend/.venv/Scripts/python"
       },
-      "args": ["-m", "unittest", "backend/run_tests.py"],
+      "args": ["-m", "backend.run_tests"],
       "options": {
         "cwd": "${workspaceFolder}"
       },

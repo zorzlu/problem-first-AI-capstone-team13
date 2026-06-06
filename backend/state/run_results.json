@@ -1709,7 +1709,7 @@
     }
   },
   "2": {
-    "runId": "run_live_1780136705",
+    "runId": "run_live_1780657856",
     "iteration": 2,
     "watchlist": [
       "AAPL",
@@ -1721,40 +1721,119 @@
       "SBUX",
       "APP"
     ],
-    "articlesCount": 11,
-    "eventsCount": 11,
-    "routedCount": 4,
-    "duplicateCounts": {
-      "NVDA": 7
-    },
+    "articlesCount": 13,
+    "eventsCount": 8,
+    "routedCount": 8,
+    "duplicateCounts": {},
     "tickerSyntheses": {
       "AAPL": {
-        "summaryId": "sum_AAPL_1780136699",
-        "ticker": "AAPL",
-        "summaryHeadline": "No new catalysts detected",
-        "situationSummary": "No catalysts routed to AAPL in this refresh.",
-        "mainCatalysts": [],
-        "overallPossibleInfluence": "unclear",
-        "confidence": "low",
+        "summaryHeadline": "Apple faces product pipeline speculation and retail promotional activity",
+        "situationSummary": "Apple is seeing a mix of speculative news regarding its upcoming hardware pipeline and ongoing retail activity. The most material development is a report suggesting the company is preparing to launch 11 new devices, including the iPhone 18 Pro and iPad 12, starting in September. Additionally, the company is currently running promotional discounts on the Apple Watch Series 11. While background sentiment remains focused on the upcoming WWDC event and recent Apple TV+ content releases, the hardware pipeline report serves as the primary driver of potential market attention.",
+        "mainCatalysts": [
+          {
+            "eventId": "evt_currents_c76aaf87-b93b-5781-b24d-10bd938c1ca9",
+            "label": "New OTT releases this weekend: 9 new movies and shows on Netflix, JioHotstar, Prime Video and more - OTT releases this weekend",
+            "relationshipType": "direct",
+            "eventType": "market_attention",
+            "possibleInfluence": "unclear",
+            "confidence": "tentative",
+            "recency": "recent",
+            "impactPath": [
+              "AAPL"
+            ],
+            "significance": 5
+          },
+          {
+            "eventId": "evt_currents_9f169835-56d6-5c30-b52e-9b0d79a88342",
+            "label": "94% of CNET Readers Think New Apple CEO's Big Splash Will Come at WWDC",
+            "relationshipType": "direct",
+            "eventType": "market_attention",
+            "possibleInfluence": "unclear",
+            "confidence": "tentative",
+            "recency": "background",
+            "impactPath": [
+              "AAPL"
+            ],
+            "significance": 5
+          },
+          {
+            "eventId": "evt_currents_65738ae9-c856-5ea6-b728-7071474c6cc8",
+            "label": "Every song on the 'Cape Fear' 2026 soundtrack",
+            "relationshipType": "direct",
+            "eventType": "market_attention",
+            "possibleInfluence": "unclear",
+            "confidence": "tentative",
+            "recency": "background",
+            "impactPath": [
+              "AAPL"
+            ],
+            "significance": 5
+          },
+          {
+            "eventId": "evt_currents_9264231c-bbc7-5d08-a6f4-98d031ba3c40",
+            "label": "Reported upcoming hardware pipeline",
+            "relationshipType": "direct",
+            "eventType": "market_attention",
+            "possibleInfluence": "positive",
+            "confidence": "tentative",
+            "recency": "recent",
+            "impactPath": [
+              "AAPL"
+            ],
+            "significance": 7
+          },
+          {
+            "eventId": "evt_currents_9714b0b7-af3f-53be-8b22-83f2282292d9",
+            "label": "Apple Watch Series 11 retail promotion",
+            "relationshipType": "direct",
+            "eventType": "market_attention",
+            "possibleInfluence": "unclear",
+            "confidence": "medium",
+            "recency": "recent",
+            "impactPath": [
+              "AAPL"
+            ],
+            "significance": 3
+          }
+        ],
+        "overallPossibleInfluence": "positive",
+        "confidence": "medium",
         "uncertainties": [
-          "No active events to assess."
+          "The reported 11-device launch pipeline is based on leaks and reports rather than official company guidance.",
+          "The impact of retail promotions on overall margins remains speculative."
         ],
         "watchItems": [
-          "Continue monitoring watchlist."
+          "Monitor for any official announcements regarding the hardware pipeline at the upcoming WWDC.",
+          "Observe market sentiment surrounding the WWDC event as a potential catalyst for volatility."
         ],
-        "sourceEventIds": [],
-        "sourceArticleUrls": [],
+        "summaryId": "sum_AAPL_1780657854",
+        "ticker": "AAPL",
+        "sourceEventIds": [
+          "evt_currents_9264231c-bbc7-5d08-a6f4-98d031ba3c40",
+          "evt_currents_9714b0b7-af3f-53be-8b22-83f2282292d9",
+          "evt_currents_c76aaf87-b93b-5781-b24d-10bd938c1ca9",
+          "evt_currents_9f169835-56d6-5c30-b52e-9b0d79a88342",
+          "evt_currents_65738ae9-c856-5ea6-b728-7071474c6cc8"
+        ],
+        "sourceArticleUrls": [
+          "https://www.nme.com/news/tv/every-song-on-the-cape-fear-2026-soundtrack-3949270",
+          "https://mashable.com/tech/june-5-apple-watch-series-11-deal",
+          "https://www.indiatoday.in/technology/news/story/apple-likely-to-launch-11-devices-soon-iphone-18-pro-ipad-12-and-more-2922426-2026-06-05",
+          "https://www.cnet.com/tech/cnet-big-guessing-game-round-1-guesses/",
+          "https://economictimes.indiatimes.com/news/india/new-ott-releases-this-weekend-9-new-movies-and-shows-on-netflix-jiohotstar-prime-video-more/ott-releases-this-weekend/slideshow/131528056.cms"
+        ],
         "notFinancialAdvice": true,
+        "complianceDisclaimer": "This is an informational briefing, not financial advice. The net impact assessment is tentative and may be incomplete; market data and official sources can change the read.",
         "guardrailMetadata": {
-          "judgeStatus": "skipped_empty",
-          "judgeAttempts": 0,
+          "judgeStatus": "passed",
+          "judgeAttempts": 1,
           "judgeDefects": [],
           "regenerated": false,
           "degraded": false
         }
       },
       "MSFT": {
-        "summaryId": "sum_MSFT_1780136699",
+        "summaryId": "sum_MSFT_1780657851",
         "ticker": "MSFT",
         "summaryHeadline": "No new catalysts detected",
         "situationSummary": "No catalysts routed to MSFT in this refresh.",
@@ -1779,141 +1858,32 @@
         }
       },
       "NVDA": {
-        "summaryHeadline": "Recent catalysts suggest mixed market sentiment for NVDA amid regulatory and economic concerns.",
-        "situationSummary": "A recent article discusses the potential impact of the CLARITY Act on crypto regulation, which could indirectly affect NVDA as it cleared the Senate Banking Committee but still faces hurdles. Additionally, a fresh report highlights that a top tech investor has allocated a significant portion of their portfolio to AI stocks, including NVDA, which may attract positive attention. However, older articles indicate concerns about rising interest rates due to inflation, which could negatively impact stock valuations, including NVDA. Overall, the situation presents a mixed outlook with both positive and negative influences at play.",
-        "mainCatalysts": [
-          {
-            "eventId": "evt_cat_NVDA_1780136679_1",
-            "label": "This Dividend King Stock Just Offered a Superb Buy-the-Dip Opportunity",
-            "relationshipType": "direct",
-            "eventType": "market_attention",
-            "possibleInfluence": "unclear",
-            "confidence": "tentative",
-            "recency": "recent",
-            "impactPath": [
-              "NVDA"
-            ],
-            "significance": 5
-          },
-          {
-            "eventId": "evt_cat_NVDA_1780136679_2",
-            "label": "QQQI\u2019s 13.8% Monthly Yield Comes With a Hidden Cost Investors Miss",
-            "relationshipType": "direct",
-            "eventType": "market_attention",
-            "possibleInfluence": "unclear",
-            "confidence": "tentative",
-            "recency": "recent",
-            "impactPath": [
-              "NVDA"
-            ],
-            "significance": 5
-          },
-          {
-            "eventId": "evt_cat_NVDA_1780136679_3",
-            "label": "What Happens to Crypto If the CLARITY Act Becomes Law in July?",
-            "relationshipType": "direct",
-            "eventType": "other",
-            "possibleInfluence": "unclear",
-            "confidence": "tentative",
-            "recency": "recent",
-            "impactPath": [
-              "NVDA"
-            ],
-            "significance": 5
-          },
-          {
-            "eventId": "evt_cat_NVDA_1780136679_0",
-            "label": "Top Tech Investor Focuses on AI Stocks",
-            "relationshipType": "direct",
-            "eventType": "market_attention",
-            "possibleInfluence": "positive",
-            "confidence": "high",
-            "recency": "breaking",
-            "impactPath": [
-              "NVDA"
-            ],
-            "significance": 7
-          },
-          {
-            "eventId": "evt_finnhub_140468523",
-            "label": "Potential Impact of the CLARITY Act on Crypto Regulation",
-            "relationshipType": "direct",
-            "eventType": "regulatory",
-            "possibleInfluence": "unclear",
-            "confidence": "medium",
-            "recency": "recent",
-            "impactPath": [
-              "NVDA"
-            ],
-            "significance": 5
-          },
-          {
-            "eventId": "evt_finnhub_140468527",
-            "label": "Warning on Stock Market Valuations",
-            "relationshipType": "direct",
-            "eventType": "market_attention",
-            "possibleInfluence": "negative",
-            "confidence": "medium",
-            "recency": "recent",
-            "impactPath": [
-              "NVDA"
-            ],
-            "significance": 6
-          }
-        ],
-        "overallPossibleInfluence": "mixed",
-        "confidence": "medium",
+        "summaryId": "sum_NVDA_1780657851",
+        "ticker": "NVDA",
+        "summaryHeadline": "No new catalysts detected",
+        "situationSummary": "No catalysts routed to NVDA in this refresh.",
+        "mainCatalysts": [],
+        "overallPossibleInfluence": "unclear",
+        "confidence": "low",
         "uncertainties": [
-          "Monitor the progress of the CLARITY Act and its implications for NVDA.",
-          "Watch for further developments regarding interest rates and inflation that could impact market valuations."
+          "No active events to assess."
         ],
         "watchItems": [
-          "Keep an eye on investor sentiment towards AI stocks and how it may influence NVDA's performance."
+          "Continue monitoring watchlist."
         ],
-        "summaryId": "sum_NVDA_1780136704",
-        "ticker": "NVDA",
-        "sourceEventIds": [
-          "evt_finnhub_140468523",
-          "evt_finnhub_140468527",
-          "evt_finnhub_140468528",
-          "evt_finnhub_140468530",
-          "evt_cat_NVDA_1780136679_0",
-          "evt_cat_NVDA_1780136679_1",
-          "evt_cat_NVDA_1780136679_2",
-          "evt_cat_NVDA_1780136679_3",
-          "evt_cat_NVDA_1780136679_4",
-          "evt_cat_NVDA_1780136679_5",
-          "evt_cat_NVDA_1780136679_6",
-          "evt_cat_NVDA_1780136679_7",
-          "evt_cat_NVDA_1780136679_8",
-          "evt_cat_NVDA_1780136680_9",
-          "evt_cat_NVDA_1780136680_10"
-        ],
-        "sourceArticleUrls": [
-          "https://finnhub.io/api/news?id=2947c030feca38790779ab32120870c2202db70330edfecced6a455a72eb169c",
-          "https://finnhub.io/api/news?id=e2ee154ce48c5b5ac88ed995c558d9a94b1a7c7eeff7b3b5b59fa545c3b40328",
-          "https://finnhub.io/api/news?id=f663aaf8310b22ceb2031bc862aa2ce0b8585a49c20f977958bc37e44dd0ec4c",
-          "https://finnhub.io/api/news?id=1b942a955da0048d4e7de7a9aacf5010c3c0a29ee6f1be8767cc1eaac6cc9b2a",
-          "https://finnhub.io/api/news?id=57835351b81047712de83135e3fed96337329af27b7444daed83378ded0dc270",
-          "https://finnhub.io/api/news?id=b74cf445235b0915f447c299d715cc4064082e94aec790066fdc5db52153695b",
-          "https://finnhub.io/api/news?id=986c1ec072febfe01ca0dc284fe9be5d0cf9ff2c0398e40ce8d95fc157ec5e96",
-          "https://finnhub.io/api/news?id=4903f8e749ed6631e4cea3405a902cd73b347422e237ba16cd8f52481af5a693",
-          "https://finnhub.io/api/news?id=1f98b2653bc14eb6e28da197a2c61b84bf072a830911991f93cdfa3cdb456a11",
-          "https://finnhub.io/api/news?id=9483c7bc6c5fe242cfbbd9e618d97b6cb74129f592f6e505a7ae790c7d16fe0a",
-          "https://finnhub.io/api/news?id=5e7e9985ba092a9fc6a16dd522661899564c288009500280f321bf38b7bbb1dc"
-        ],
+        "sourceEventIds": [],
+        "sourceArticleUrls": [],
         "notFinancialAdvice": true,
-        "complianceDisclaimer": "This is an informational briefing, not financial advice. The net impact assessment is tentative and may be incomplete; market data and official sources can change the read.",
         "guardrailMetadata": {
-          "judgeStatus": "passed",
-          "judgeAttempts": 1,
+          "judgeStatus": "skipped_empty",
+          "judgeAttempts": 0,
           "judgeDefects": [],
           "regenerated": false,
           "degraded": false
         }
       },
       "TSM": {
-        "summaryId": "sum_TSM_1780136699",
+        "summaryId": "sum_TSM_1780657851",
         "ticker": "TSM",
         "summaryHeadline": "No new catalysts detected",
         "situationSummary": "No catalysts routed to TSM in this refresh.",
@@ -1938,82 +1908,141 @@
         }
       },
       "DAL": {
-        "summaryId": "sum_DAL_1780136699",
-        "ticker": "DAL",
-        "summaryHeadline": "No new catalysts detected",
-        "situationSummary": "No catalysts routed to DAL in this refresh.",
-        "mainCatalysts": [],
-        "overallPossibleInfluence": "unclear",
-        "confidence": "low",
+        "summaryHeadline": "Institutional Investor Increases Stake in Delta Air Lines",
+        "situationSummary": "Delta Air Lines (DAL) is seeing moderate institutional interest following a report that Livforsakringsbolaget Skandia Omsesidigt increased its stake in the company by 101.9% during the fourth quarter. This event is considered a medium-priority background development, as it reflects past institutional positioning rather than an immediate operational or market-moving catalyst.",
+        "mainCatalysts": [
+          {
+            "eventId": "evt_currents_363decb8-1694-5c29-9b92-cae7d7a25594",
+            "label": "Institutional Stake Increase",
+            "relationshipType": "direct",
+            "eventType": "other",
+            "possibleInfluence": "positive",
+            "confidence": "tentative",
+            "recency": "recent",
+            "impactPath": [
+              "DAL"
+            ],
+            "significance": 7
+          }
+        ],
+        "overallPossibleInfluence": "positive",
+        "confidence": "tentative",
         "uncertainties": [
-          "No active events to assess."
+          "Whether this institutional move signals broader confidence in DAL's near-term performance or is simply a portfolio rebalancing event."
         ],
         "watchItems": [
-          "Continue monitoring watchlist."
+          "Monitor for any additional institutional filings or analyst updates that might provide further context on current sentiment toward DAL."
         ],
-        "sourceEventIds": [],
-        "sourceArticleUrls": [],
+        "summaryId": "sum_DAL_1780657854",
+        "ticker": "DAL",
+        "sourceEventIds": [
+          "evt_currents_363decb8-1694-5c29-9b92-cae7d7a25594"
+        ],
+        "sourceArticleUrls": [
+          "https://www.marketbeat.com/instant-alerts/filing-delta-air-lines-inc-dal-stake-raised-by-livforsakringsbolaget-skandia-omsesidigt-2026-06-05/"
+        ],
         "notFinancialAdvice": true,
+        "complianceDisclaimer": "This is an informational briefing, not financial advice. The net impact assessment is tentative and may be incomplete; market data and official sources can change the read.",
         "guardrailMetadata": {
-          "judgeStatus": "skipped_empty",
-          "judgeAttempts": 0,
+          "judgeStatus": "passed",
+          "judgeAttempts": 1,
           "judgeDefects": [],
           "regenerated": false,
           "degraded": false
         }
       },
       "MCD": {
-        "summaryId": "sum_MCD_1780136699",
-        "ticker": "MCD",
-        "summaryHeadline": "No new catalysts detected",
-        "situationSummary": "No catalysts routed to MCD in this refresh.",
-        "mainCatalysts": [],
-        "overallPossibleInfluence": "unclear",
-        "confidence": "low",
+        "summaryHeadline": "Institutional Stake Reduction Reported in McDonald's",
+        "situationSummary": "Livforsakringsbolaget Skandia Omsesidigt has reduced its stake in McDonald's Corporation (MCD) by 75.5% during the fourth quarter, according to a recent SEC filing report. This institutional selling activity represents a medium-priority background development for the ticker.",
+        "mainCatalysts": [
+          {
+            "eventId": "evt_currents_42a46915-a078-5a43-805c-0fef7eeb6aa7",
+            "label": "Institutional Stake Reduction",
+            "relationshipType": "direct",
+            "eventType": "other",
+            "possibleInfluence": "negative",
+            "confidence": "medium",
+            "recency": "recent",
+            "impactPath": [
+              "MCD"
+            ],
+            "significance": 7
+          }
+        ],
+        "overallPossibleInfluence": "negative",
+        "confidence": "medium",
         "uncertainties": [
-          "No active events to assess."
+          "Whether this reduction reflects a broader trend in institutional sentiment toward MCD or is an isolated portfolio rebalancing event."
         ],
         "watchItems": [
-          "Continue monitoring watchlist."
+          "Monitor for any additional institutional filings or analyst commentary regarding MCD's recent performance or outlook."
         ],
-        "sourceEventIds": [],
-        "sourceArticleUrls": [],
+        "summaryId": "sum_MCD_1780657854",
+        "ticker": "MCD",
+        "sourceEventIds": [
+          "evt_currents_42a46915-a078-5a43-805c-0fef7eeb6aa7"
+        ],
+        "sourceArticleUrls": [
+          "https://www.marketbeat.com/instant-alerts/filing-livforsakringsbolaget-skandia-omsesidigt-has-126-million-stock-position-in-mcdonalds-corporation-mcd-2026-06-05/"
+        ],
         "notFinancialAdvice": true,
+        "complianceDisclaimer": "This is an informational briefing, not financial advice. The net impact assessment is tentative and may be incomplete; market data and official sources can change the read.",
         "guardrailMetadata": {
-          "judgeStatus": "skipped_empty",
-          "judgeAttempts": 0,
+          "judgeStatus": "passed",
+          "judgeAttempts": 1,
           "judgeDefects": [],
           "regenerated": false,
           "degraded": false
         }
       },
       "SBUX": {
-        "summaryId": "sum_SBUX_1780136699",
-        "ticker": "SBUX",
-        "summaryHeadline": "No new catalysts detected",
-        "situationSummary": "No catalysts routed to SBUX in this refresh.",
-        "mainCatalysts": [],
-        "overallPossibleInfluence": "unclear",
-        "confidence": "low",
+        "summaryHeadline": "Starbucks Retires AI Inventory Tool Following Operational Failures",
+        "situationSummary": "Starbucks has officially retired an AI-driven inventory management tool after the system caused frequent operational errors. This development, while reported as background context due to its timing, highlights potential friction in the company's digital transformation efforts and operational efficiency.",
+        "mainCatalysts": [
+          {
+            "eventId": "evt_currents_9c6c01f1-0a55-540a-a3d0-2cacd0fa73fc",
+            "label": "Retirement of AI Inventory Tool",
+            "relationshipType": "direct",
+            "eventType": "market_attention",
+            "possibleInfluence": "negative",
+            "confidence": "medium",
+            "recency": "background",
+            "impactPath": [
+              "SBUX"
+            ],
+            "significance": 6
+          }
+        ],
+        "overallPossibleInfluence": "negative",
+        "confidence": "medium",
         "uncertainties": [
-          "No active events to assess."
+          "Potential for further operational friction as the company transitions away from the AI tool",
+          "Extent of financial impact or cost savings associated with the tool's retirement"
         ],
         "watchItems": [
-          "Continue monitoring watchlist."
+          "Management commentary on future digital or AI-driven operational initiatives",
+          "Social media sentiment regarding store-level operational efficiency"
         ],
-        "sourceEventIds": [],
-        "sourceArticleUrls": [],
+        "summaryId": "sum_SBUX_1780657854",
+        "ticker": "SBUX",
+        "sourceEventIds": [
+          "evt_currents_9c6c01f1-0a55-540a-a3d0-2cacd0fa73fc"
+        ],
+        "sourceArticleUrls": [
+          "https://www.inc.com/fast-company-2/ai-havoc-starbucks-pizza-hut-social-media/91356340"
+        ],
         "notFinancialAdvice": true,
+        "complianceDisclaimer": "This is an informational briefing, not financial advice. The net impact assessment is tentative and may be incomplete; market data and official sources can change the read.",
         "guardrailMetadata": {
-          "judgeStatus": "skipped_empty",
-          "judgeAttempts": 0,
+          "judgeStatus": "passed",
+          "judgeAttempts": 1,
           "judgeDefects": [],
           "regenerated": false,
           "degraded": false
         }
       },
       "APP": {
-        "summaryId": "sum_APP_1780136699",
+        "summaryId": "sum_APP_1780657851",
         "ticker": "APP",
         "summaryHeadline": "No new catalysts detected",
         "situationSummary": "No catalysts routed to APP in this refresh.",
@@ -2041,683 +2070,1022 @@
     "llmFailed": false,
     "rawArticles": [
       {
-        "articleId": "finnhub_140468520",
+        "articleId": "finnhub_140534126",
         "sourceApi": "finnhub",
         "sourceName": "Yahoo",
-        "url": "https://finnhub.io/api/news?id=1f98b2653bc14eb6e28da197a2c61b84bf072a830911991f93cdfa3cdb456a11",
-        "headline": "This Under-the-Radar Top Tech Investor Has 40% of His Portfolio in These 4 AI Stocks",
-        "summary": "Glen Kacher of Light Street Capital has made these top semiconductor stocks the focus of his portfolio.",
-        "publishedAt": "2026-05-30T09:51:00+00:00",
+        "url": "https://finnhub.io/api/news?id=10edb5bc6394708d939090abaadf7f5c026ce1b1b55e3aafadb60fa7909b9f67",
+        "headline": "Costco's 9.8% Same-Store Sales Growth in Q3 2026 Shows Why Investors Love the Retail Stock So Much",
+        "summary": "After an impressive 634% trailing 10-year total return, it's worth understanding how the market looks at this business.",
+        "publishedAt": "2026-06-05T09:45:00+00:00",
         "relatedTickers": [
           "NVDA"
         ]
       },
       {
-        "articleId": "finnhub_140468521",
+        "articleId": "finnhub_140534127",
         "sourceApi": "finnhub",
         "sourceName": "Yahoo",
-        "url": "https://finnhub.io/api/news?id=1b942a955da0048d4e7de7a9aacf5010c3c0a29ee6f1be8767cc1eaac6cc9b2a",
-        "headline": "This Dividend King Stock Just Offered a Superb Buy-the-Dip Opportunity",
-        "summary": "Walmart is facing short-term pressures that are leading investors to miss the long-term opportunity.",
-        "publishedAt": "2026-05-30T09:45:00+00:00",
+        "url": "https://finnhub.io/api/news?id=9edd422c9779a1bfbe4a4a7429c917940ace4017e694a8f7b1d4adc8aae49c7c",
+        "headline": "Quantinuum Stock Falls After Uninspiring Quantum IPO Debut. What Went Wrong?",
+        "summary": "Quantinuum  stock popped in its trading debut, opening 13% above its initial public offering price in what seemed to be a major win for the quantum computing industry.  Regardless, the stock outperformed other notable names in the rest sector:  IonQ  closed down 3.8% while  D-Wave Quantum  and  Rigetti Computing  added 0.3% each.  The stock looked set to fall on its second day of trading, pointing 3.6% lower at $58.18 in premarket trading Friday.",
+        "publishedAt": "2026-06-05T09:42:00+00:00",
         "relatedTickers": [
           "NVDA"
         ]
       },
       {
-        "articleId": "finnhub_140468522",
+        "articleId": "finnhub_140534128",
         "sourceApi": "finnhub",
         "sourceName": "Yahoo",
-        "url": "https://finnhub.io/api/news?id=57835351b81047712de83135e3fed96337329af27b7444daed83378ded0dc270",
-        "headline": "QQQI\u2019s 13.8% Monthly Yield Comes With a Hidden Cost Investors Miss",
-        "summary": "The NEOS Nasdaq-100 High Income ETF (NASDAQ:QQQI) has grown to roughly $9.4 billion in assets in just over two years. The pitch is simple: QQQI gives you Nasdaq-100 exposure plus a distribution yield quoted anywhere from 13.8% to 16%, paid every month. Income investors piling into QQQI focus on the headline payout while ignoring what ... QQQI\u2019s 13.8% Monthly Yield Comes With a Hidden Cost Investors Miss",
-        "publishedAt": "2026-05-30T09:38:52+00:00",
+        "url": "https://finnhub.io/api/news?id=72a8cc4dc0477c9cf16f20eb8a69a6f53bf3be9dfa47f0feeea7c00db2d56357",
+        "headline": "5 AI Stocks to Own for the Inference Age",
+        "summary": "These semiconductor stocks all look set to benefit from the rise of the inference market.",
+        "publishedAt": "2026-06-05T09:41:00+00:00",
         "relatedTickers": [
           "NVDA"
         ]
       },
       {
-        "articleId": "finnhub_140468523",
+        "articleId": "finnhub_140534129",
         "sourceApi": "finnhub",
         "sourceName": "Yahoo",
-        "url": "https://finnhub.io/api/news?id=f663aaf8310b22ceb2031bc862aa2ce0b8585a49c20f977958bc37e44dd0ec4c",
-        "headline": "What Happens to Crypto If the CLARITY Act Becomes Law in July?",
-        "summary": "The CLARITY Act cleared the Senate Banking Committee on May 14, but still needs 60 votes to clear a Senate filibuster, reconciliation with the House, and a presidential signature. The White House is targeting a July 4 deadline for the bill to become law, and Polymarket puts the odds of passage in 2026 at 59%. ... What Happens to Crypto If the CLARITY Act Becomes Law in July?",
-        "publishedAt": "2026-05-30T09:30:57+00:00",
+        "url": "https://finnhub.io/api/news?id=6c2e1804476d125acd14595030cd52cea889e13c4feffb8cb7d70a73cf5f89dc",
+        "headline": "Lululemon Flubbed the Quarter, and the Founder Won't Say a Bad Word",
+        "summary": "Lululemon's first quarter 2026 earnings missed the mark, but its agreement with founder Chip Wilson now looks very timely.",
+        "publishedAt": "2026-06-05T09:32:38+00:00",
         "relatedTickers": [
           "NVDA"
         ]
       },
       {
-        "articleId": "finnhub_140468524",
+        "articleId": "finnhub_140534130",
         "sourceApi": "finnhub",
         "sourceName": "Yahoo",
-        "url": "https://finnhub.io/api/news?id=5e7e9985ba092a9fc6a16dd522661899564c288009500280f321bf38b7bbb1dc",
-        "headline": "Prediction: This Trend, Launched by Cerebras, Could Supercharge the AI Bull Market This Year",
-        "summary": "Investors may soon have a new batch of AI stocks to choose from.",
-        "publishedAt": "2026-05-30T09:25:00+00:00",
+        "url": "https://finnhub.io/api/news?id=9aa2d96fab3ddfab8eedddc98194cd96e7403402e215d474bae017f55d603c40",
+        "headline": "Warren Buffett's Successor, Greg Abel, Overhauled Berkshire Hathaway's Portfolio and Has 61% of Its Assets Invested in Just 5 Stocks",
+        "summary": "Berkshire Hathaway's new look $330 billion portfolio is highly concentrated in five brand-name companies -- including a virtual monopoly.",
+        "publishedAt": "2026-06-05T09:26:00+00:00",
         "relatedTickers": [
           "NVDA"
         ]
       },
       {
-        "articleId": "finnhub_140468525",
-        "sourceApi": "finnhub",
-        "sourceName": "Yahoo",
-        "url": "https://finnhub.io/api/news?id=986c1ec072febfe01ca0dc284fe9be5d0cf9ff2c0398e40ce8d95fc157ec5e96",
-        "headline": "Legendary Investor Chuck Akre Is Quietly Holding a Huge Position in This Company. Investors Should Pay Attention.",
-        "summary": "It may be worth asking what he sees in this Canadian company.",
-        "publishedAt": "2026-05-30T09:20:00+00:00",
+        "articleId": "currents_9264231c-bbc7-5d08-a6f4-98d031ba3c40",
+        "sourceApi": "currents_company",
+        "sourceName": "Ankita Garg",
+        "url": "https://www.indiatoday.in/technology/news/story/apple-likely-to-launch-11-devices-soon-iphone-18-pro-ipad-12-and-more-2922426-2026-06-05",
+        "headline": "Apple said to launch 11 devices soon: iPhone 18 Pro, iPad 12 and more",
+        "summary": "Leaks suggest Apple is lining up the iPhone 18 Pro range and several other devices for launches from September. If the reports hold, the company could deliver one of its broadest hardware refreshes in recent years.",
+        "publishedAt": "2026-06-05 10:38:50 +0000",
         "relatedTickers": [
-          "NVDA"
+          "AAPL"
+        ],
+        "queryTerms": [
+          "$AAPL",
+          "Apple Inc.",
+          "Apple",
+          "Apple Services",
+          "Tim Cook"
         ]
       },
       {
-        "articleId": "finnhub_140468526",
-        "sourceApi": "finnhub",
-        "sourceName": "Yahoo",
-        "url": "https://finnhub.io/api/news?id=b74cf445235b0915f447c299d715cc4064082e94aec790066fdc5db52153695b",
-        "headline": "Prediction: Bitcoin Will Hit $120,000 Before the End of the Year",
-        "summary": "Two new catalysts could send Bitcoin soaring in the second half of 2026.",
-        "publishedAt": "2026-05-30T09:13:00+00:00",
+        "articleId": "currents_9714b0b7-af3f-53be-8b22-83f2282292d9",
+        "sourceApi": "currents_company",
+        "sourceName": "Hannah Hoolihan",
+        "url": "https://mashable.com/tech/june-5-apple-watch-series-11-deal",
+        "headline": "Best Apple Watch deal: Save $100 on Apple Watch Series 11",
+        "summary": "Score this Apple smartwatch for under $300 before the sale event.",
+        "publishedAt": "2026-06-05 10:20:25 +0000",
         "relatedTickers": [
-          "NVDA"
+          "AAPL"
+        ],
+        "queryTerms": [
+          "$AAPL",
+          "Apple Inc.",
+          "Apple",
+          "Apple Services",
+          "Tim Cook"
         ]
       },
       {
-        "articleId": "finnhub_140468527",
-        "sourceApi": "finnhub",
-        "sourceName": "Yahoo",
-        "url": "https://finnhub.io/api/news?id=2947c030feca38790779ab32120870c2202db70330edfecced6a455a72eb169c",
-        "headline": "A Stock Market Indicator Flashes a Warning Last Seen in 2007. Warren Buffett Explains Why It Matters.",
-        "summary": "Inflation tied to the Iran conflict may force the Federal Reserve to raise interest rates, and Warren Buffett says higher rates will compress stock market valuations.",
-        "publishedAt": "2026-05-30T09:08:00+00:00",
+        "articleId": "currents_c76aaf87-b93b-5781-b24d-10bd938c1ca9",
+        "sourceApi": "currents_company",
+        "sourceName": "Others",
+        "url": "https://economictimes.indiatimes.com/news/india/new-ott-releases-this-weekend-9-new-movies-and-shows-on-netflix-jiohotstar-prime-video-more/ott-releases-this-weekend/slideshow/131528056.cms",
+        "headline": "New OTT releases this weekend: 9 new movies and shows on Netflix, JioHotstar, Prime Video and more - OTT releases this weekend",
+        "summary": "OTT releases this weekend bring a mix of highly anticipated movies and web series across platforms like Netflix, Prime Video, ZEE5, SonyLIV, JioHotstar and Apple TV+. From Karisma Kapoor's comeback thriller Brown and the latest season of Gullak to Office Romance and Cape Fear, viewers have plenty of...",
+        "publishedAt": "2026-06-05 09:45:46 +0000",
         "relatedTickers": [
-          "NVDA"
+          "AAPL"
+        ],
+        "queryTerms": [
+          "$AAPL",
+          "Apple Inc.",
+          "Apple",
+          "Apple Services",
+          "Tim Cook"
         ]
       },
       {
-        "articleId": "finnhub_140468528",
-        "sourceApi": "finnhub",
-        "sourceName": "Yahoo",
-        "url": "https://finnhub.io/api/news?id=4903f8e749ed6631e4cea3405a902cd73b347422e237ba16cd8f52481af5a693",
-        "headline": "This Is SpaceX's Biggest Market, and It Might Surprise You (Spoiler Alert: It Has Nothing to Do With Space)",
-        "summary": "If you're interested in SpaceX, make sure to understand what it really does and what it plans to do.",
-        "publishedAt": "2026-05-30T08:50:00+00:00",
+        "articleId": "currents_9f169835-56d6-5c30-b52e-9b0d79a88342",
+        "sourceApi": "currents_company",
+        "sourceName": "Dashia Milden",
+        "url": "https://www.cnet.com/tech/cnet-big-guessing-game-round-1-guesses/",
+        "headline": "94% of CNET Readers Think New Apple CEO's Big Splash Will Come at WWDC",
+        "summary": "From potential MacOS nicknames to how many times \"Apple Intelligence\" will be mentioned during the WWDC keynote, here are CNET readers' contest guesses.",
+        "publishedAt": "2026-06-05 09:30:00 +0000",
         "relatedTickers": [
-          "NVDA"
+          "AAPL"
+        ],
+        "queryTerms": [
+          "$AAPL",
+          "Apple Inc.",
+          "Apple",
+          "Apple Services",
+          "Tim Cook"
         ]
       },
       {
-        "articleId": "finnhub_140468529",
-        "sourceApi": "finnhub",
-        "sourceName": "Yahoo",
-        "url": "https://finnhub.io/api/news?id=e2ee154ce48c5b5ac88ed995c558d9a94b1a7c7eeff7b3b5b59fa545c3b40328",
-        "headline": "3 Magnificent Dividend Stocks Down 20% to Buy and Hold Forever",
-        "summary": "These high-yield consumer stocks can pay steady dividends for the long term.",
-        "publishedAt": "2026-05-30T08:35:00+00:00",
+        "articleId": "currents_65738ae9-c856-5ea6-b728-7071474c6cc8",
+        "sourceApi": "currents_company",
+        "sourceName": "Max Pilley",
+        "url": "https://www.nme.com/news/tv/every-song-on-the-cape-fear-2026-soundtrack-3949270",
+        "headline": "Every song on the 'Cape Fear' 2026 soundtrack",
+        "summary": "The new TV adaptation of Cape Fear has premiered on Apple TV, but what songs feature? Find the full list below.",
+        "publishedAt": "2026-06-05 09:29:24 +0000",
         "relatedTickers": [
-          "NVDA"
+          "AAPL"
+        ],
+        "queryTerms": [
+          "$AAPL",
+          "Apple Inc.",
+          "Apple",
+          "Apple Services",
+          "Tim Cook"
         ]
       },
       {
-        "articleId": "finnhub_140468530",
-        "sourceApi": "finnhub",
-        "sourceName": "Yahoo",
-        "url": "https://finnhub.io/api/news?id=9483c7bc6c5fe242cfbbd9e618d97b6cb74129f592f6e505a7ae790c7d16fe0a",
-        "headline": "Trumpflation Isn't Close to Peaking -- and That's Terrible News for a Stock Market That's Priced for Perfection",
-        "summary": "President Donald Trump's decisions are fueling two concurrent price shocks.",
-        "publishedAt": "2026-05-30T08:26:00+00:00",
+        "articleId": "currents_9c6c01f1-0a55-540a-a3d0-2cacd0fa73fc",
+        "sourceApi": "currents_company",
+        "sourceName": "Fast Company",
+        "url": "https://www.inc.com/fast-company-2/ai-havoc-starbucks-pizza-hut-social-media/91356340",
+        "headline": "AI Is Wreaking Havoc at Starbucks and Pizza Hut. Social Media Is Having a Field Day",
+        "summary": "Starbucks retired an AI inventory tool after frequent mistakes, while Pizza Hut\u2019s delivery system allegedly lost a franchisee more than $100 million in sales. AI woes are coming for the food service industry, and social media can\u2019t help but celebrate. This week, both Starbucks and Pizza Hut made \u2026",
+        "publishedAt": "2026-06-05 09:30:00 +0000",
         "relatedTickers": [
-          "NVDA"
+          "SBUX"
+        ],
+        "queryTerms": [
+          "$SBUX",
+          "Starbucks Corporation",
+          "Starbucks",
+          "coffee shops"
+        ]
+      },
+      {
+        "articleId": "currents_363decb8-1694-5c29-9b92-cae7d7a25594",
+        "sourceApi": "currents_company",
+        "sourceName": "MarketBeat",
+        "url": "https://www.marketbeat.com/instant-alerts/filing-delta-air-lines-inc-dal-stake-raised-by-livforsakringsbolaget-skandia-omsesidigt-2026-06-05/",
+        "headline": "Delta Air Lines, Inc. $DAL Stake Raised by Livforsakringsbolaget Skandia Omsesidigt",
+        "summary": "Livforsakringsbolaget Skandia Omsesidigt boosted its holdings in Delta Air Lines, Inc. (NYSE:DAL - Free Report) by 101.9% during the 4th quarter, according to the company in its most recent disclosure with the Securities and Exchange Commission. The institutional investor owned 199,902 shares of t",
+        "publishedAt": "2026-06-05 10:30:18 +0000",
+        "relatedTickers": [
+          "DAL"
+        ],
+        "queryTerms": [
+          "$DAL",
+          "Delta Air Lines",
+          "Delta"
+        ]
+      },
+      {
+        "articleId": "currents_42a46915-a078-5a43-805c-0fef7eeb6aa7",
+        "sourceApi": "currents_company",
+        "sourceName": "MarketBeat",
+        "url": "https://www.marketbeat.com/instant-alerts/filing-livforsakringsbolaget-skandia-omsesidigt-has-126-million-stock-position-in-mcdonalds-corporation-mcd-2026-06-05/",
+        "headline": "Livforsakringsbolaget Skandia Omsesidigt Has $1.26 Million Stock Position in McDonald's Corporation $MCD",
+        "summary": "Livforsakringsbolaget Skandia Omsesidigt reduced its position in shares of McDonald's Corporation (NYSE:MCD - Free Report) by 75.5% in the 4th quarter, according to its most recent filing with the Securities and Exchange Commission. The fund owned 4,120 shares of the fast-food giant's stock after s",
+        "publishedAt": "2026-06-05 10:38:46 +0000",
+        "relatedTickers": [
+          "MCD"
+        ],
+        "queryTerms": [
+          "$MCD",
+          "McDonald's Corporation",
+          "McDonald's",
+          "Mickey D's"
         ]
       }
     ],
     "canonicalEvents": [
       {
-        "articleId": "finnhub_140468520",
+        "articleId": "currents_9264231c-bbc7-5d08-a6f4-98d031ba3c40",
         "eventType": "market_attention",
-        "eventSummary": "Yahoo article reports Glen Kacher of Light Street Capital has 40% of his portfolio in four AI stocks, focusing on semiconductor stocks.",
+        "eventSummary": "Reports suggest Apple is preparing to launch 11 new devices, including the iPhone 18 Pro and iPad 12, starting in September.",
         "hardFacts": [
-          "Glen Kacher of Light Street Capital has made these top semiconductor stocks the focus of his portfolio."
+          "Apple is expected to launch 11 devices soon",
+          "Expected devices include iPhone 18 Pro and iPad 12",
+          "Launches are anticipated to begin from September"
         ],
         "mentionedTickers": [
-          "NVDA"
+          "AAPL"
         ],
         "entities": [
-          "Light Street Capital"
+          "Apple",
+          "iPhone 18 Pro",
+          "iPad 12"
         ],
         "eventTags": [
-          "AI",
-          "semiconductor"
+          "product launch",
+          "hardware"
         ],
-        "regions": [],
+        "regions": [
+          "Global"
+        ],
         "sectors": [
-          "technology",
-          "semiconductor"
+          "Technology"
         ],
         "commodities": [],
         "technologyThemes": [
-          "AI stocks"
+          "Consumer Electronics"
         ],
         "possibleDirectionalPressure": "positive",
         "uncertaintyNotes": [
-          "Focus on AI stocks may influence investor attention."
+          "These are based on leaks and reports, not official company announcements."
         ],
         "evidence": [
-          "Glen Kacher of Light Street Capital has made these top semiconductor stocks the focus of his portfolio."
+          "Apple is lining up the iPhone 18 Pro range and several other devices for launches from September"
         ],
-        "eventId": "evt_finnhub_140468520",
+        "eventId": "evt_currents_9264231c-bbc7-5d08-a6f4-98d031ba3c40",
         "sourceArticleIds": [
-          "finnhub_140468520"
+          "currents_9264231c-bbc7-5d08-a6f4-98d031ba3c40"
         ],
         "relatedTickers": [
-          "NVDA"
+          "AAPL"
         ],
-        "sourceUrl": "https://finnhub.io/api/news?id=1f98b2653bc14eb6e28da197a2c61b84bf072a830911991f93cdfa3cdb456a11",
-        "sourceName": "Yahoo",
-        "sourceHeadline": "This Under-the-Radar Top Tech Investor Has 40% of His Portfolio in These 4 AI Stocks",
-        "publishedAt": "2026-05-30T09:51:00+00:00"
+        "sourceUrl": "https://www.indiatoday.in/technology/news/story/apple-likely-to-launch-11-devices-soon-iphone-18-pro-ipad-12-and-more-2922426-2026-06-05",
+        "sourceName": "Ankita Garg",
+        "sourceHeadline": "Apple said to launch 11 devices soon: iPhone 18 Pro, iPad 12 and more",
+        "publishedAt": "2026-06-05 10:38:50 +0000"
       },
       {
-        "articleId": "finnhub_140468521",
+        "articleId": "currents_9714b0b7-af3f-53be-8b22-83f2282292d9",
         "eventType": "market_attention",
-        "eventSummary": "Yahoo article discusses Walmart facing short-term pressures, presenting a buy-the-dip opportunity, with no direct mention of NVDA.",
+        "eventSummary": "A promotional deal is offering a $100 discount on the Apple Watch Series 11.",
         "hardFacts": [
-          "Walmart is facing short-term pressures that are leading investors to miss the long-term opportunity."
+          "Apple Watch Series 11 is available with a $100 discount",
+          "Sale price is under $300"
         ],
         "mentionedTickers": [
-          "NVDA"
+          "AAPL"
         ],
         "entities": [
-          "Walmart"
+          "Apple",
+          "Apple Watch Series 11"
         ],
         "eventTags": [
           "retail",
-          "investment opportunity"
-        ],
-        "regions": [],
-        "sectors": [
-          "retail"
-        ],
-        "commodities": [],
-        "technologyThemes": [],
-        "possibleDirectionalPressure": "unclear",
-        "uncertaintyNotes": [
-          "No direct impact on NVDA indicated."
-        ],
-        "evidence": [
-          "Walmart is facing short-term pressures that are leading investors to miss the long-term opportunity."
-        ],
-        "eventId": "evt_finnhub_140468521",
-        "sourceArticleIds": [
-          "finnhub_140468521"
-        ],
-        "relatedTickers": [
-          "NVDA"
-        ],
-        "sourceUrl": "https://finnhub.io/api/news?id=1b942a955da0048d4e7de7a9aacf5010c3c0a29ee6f1be8767cc1eaac6cc9b2a",
-        "sourceName": "Yahoo",
-        "sourceHeadline": "This Dividend King Stock Just Offered a Superb Buy-the-Dip Opportunity",
-        "publishedAt": "2026-05-30T09:45:00+00:00"
-      },
-      {
-        "articleId": "finnhub_140468522",
-        "eventType": "market_attention",
-        "eventSummary": "Yahoo article explains the high yield of the Nasdaq-100 High Income ETF (NASDAQ:QQQI), with no direct mention of NVDA.",
-        "hardFacts": [
-          "The NEOS Nasdaq-100 High Income ETF (NASDAQ:QQQI) has grown to roughly $9.4 billion in assets in just over two years."
-        ],
-        "mentionedTickers": [
-          "NVDA"
-        ],
-        "entities": [
-          "NASDAQ:QQQI"
-        ],
-        "eventTags": [
-          "ETF",
-          "income yield"
-        ],
-        "regions": [],
-        "sectors": [
-          "financial"
-        ],
-        "commodities": [],
-        "technologyThemes": [],
-        "possibleDirectionalPressure": "unclear",
-        "uncertaintyNotes": [
-          "No direct impact on NVDA indicated."
-        ],
-        "evidence": [
-          "The NEOS Nasdaq-100 High Income ETF (NASDAQ:QQQI) has grown to roughly $9.4 billion in assets in just over two years."
-        ],
-        "eventId": "evt_finnhub_140468522",
-        "sourceArticleIds": [
-          "finnhub_140468522"
-        ],
-        "relatedTickers": [
-          "NVDA"
-        ],
-        "sourceUrl": "https://finnhub.io/api/news?id=57835351b81047712de83135e3fed96337329af27b7444daed83378ded0dc270",
-        "sourceName": "Yahoo",
-        "sourceHeadline": "QQQI\u2019s 13.8% Monthly Yield Comes With a Hidden Cost Investors Miss",
-        "publishedAt": "2026-05-30T09:38:52+00:00"
-      },
-      {
-        "articleId": "finnhub_140468523",
-        "eventType": "regulatory",
-        "eventSummary": "Yahoo article discusses the potential passage of the CLARITY Act, which could impact crypto regulation, with no direct mention of NVDA.",
-        "hardFacts": [
-          "The CLARITY Act cleared the Senate Banking Committee on May 14, but still needs 60 votes to clear a Senate filibuster, reconciliation with the House, and a presidential signature."
-        ],
-        "mentionedTickers": [
-          "NVDA"
-        ],
-        "entities": [
-          "CLARITY Act"
-        ],
-        "eventTags": [
-          "regulation",
-          "crypto"
+          "promotion"
         ],
         "regions": [
-          "U.S."
+          "Global"
         ],
         "sectors": [
-          "regulatory"
-        ],
-        "commodities": [],
-        "technologyThemes": [],
-        "possibleDirectionalPressure": "unclear",
-        "uncertaintyNotes": [
-          "No direct impact on NVDA indicated."
-        ],
-        "evidence": [
-          "The CLARITY Act cleared the Senate Banking Committee on May 14, but still needs 60 votes to clear a Senate filibuster, reconciliation with the House, and a presidential signature."
-        ],
-        "eventId": "evt_finnhub_140468523",
-        "sourceArticleIds": [
-          "finnhub_140468523"
-        ],
-        "relatedTickers": [
-          "NVDA"
-        ],
-        "sourceUrl": "https://finnhub.io/api/news?id=f663aaf8310b22ceb2031bc862aa2ce0b8585a49c20f977958bc37e44dd0ec4c",
-        "sourceName": "Yahoo",
-        "sourceHeadline": "What Happens to Crypto If the CLARITY Act Becomes Law in July?",
-        "publishedAt": "2026-05-30T09:30:57+00:00"
-      },
-      {
-        "articleId": "finnhub_140468524",
-        "eventType": "market_attention",
-        "eventSummary": "Yahoo article suggests a new AI trend launched by Cerebras could boost the AI bull market, with no direct mention of NVDA.",
-        "hardFacts": [
-          "Investors may soon have a new batch of AI stocks to choose from."
-        ],
-        "mentionedTickers": [
-          "NVDA"
-        ],
-        "entities": [
-          "Cerebras"
-        ],
-        "eventTags": [
-          "AI",
-          "market trend"
-        ],
-        "regions": [],
-        "sectors": [
-          "technology"
+          "Technology",
+          "Retail"
         ],
         "commodities": [],
         "technologyThemes": [
-          "AI trend"
+          "Wearables"
         ],
-        "possibleDirectionalPressure": "positive",
-        "uncertaintyNotes": [
-          "Potential positive influence on NVDA due to AI market growth."
-        ],
+        "possibleDirectionalPressure": "unclear",
+        "uncertaintyNotes": [],
         "evidence": [
-          "Investors may soon have a new batch of AI stocks to choose from."
+          "Save $100 on Apple Watch Series 11",
+          "Score this Apple smartwatch for under $300"
         ],
-        "eventId": "evt_finnhub_140468524",
+        "eventId": "evt_currents_9714b0b7-af3f-53be-8b22-83f2282292d9",
         "sourceArticleIds": [
-          "finnhub_140468524"
+          "currents_9714b0b7-af3f-53be-8b22-83f2282292d9"
         ],
         "relatedTickers": [
-          "NVDA"
+          "AAPL"
         ],
-        "sourceUrl": "https://finnhub.io/api/news?id=5e7e9985ba092a9fc6a16dd522661899564c288009500280f321bf38b7bbb1dc",
-        "sourceName": "Yahoo",
-        "sourceHeadline": "Prediction: This Trend, Launched by Cerebras, Could Supercharge the AI Bull Market This Year",
-        "publishedAt": "2026-05-30T09:25:00+00:00"
+        "sourceUrl": "https://mashable.com/tech/june-5-apple-watch-series-11-deal",
+        "sourceName": "Hannah Hoolihan",
+        "sourceHeadline": "Best Apple Watch deal: Save $100 on Apple Watch Series 11",
+        "publishedAt": "2026-06-05 10:20:25 +0000"
       },
       {
-        "articleId": "finnhub_140468525",
+        "articleId": "currents_c76aaf87-b93b-5781-b24d-10bd938c1ca9",
         "eventType": "market_attention",
-        "eventSummary": "Yahoo article reports that legendary investor Chuck Akre is holding a large position in a Canadian company, with no direct mention of NVDA.",
+        "eventSummary": "Apple TV+ is listed among platforms releasing new content this weekend.",
         "hardFacts": [
-          "It may be worth asking what he sees in this Canadian company."
+          "Apple TV+ is releasing new content this weekend"
         ],
         "mentionedTickers": [
-          "NVDA"
+          "AAPL"
         ],
         "entities": [
-          "Chuck Akre"
+          "Apple TV+",
+          "Netflix",
+          "Prime Video",
+          "ZEE5",
+          "SonyLIV",
+          "JioHotstar"
         ],
         "eventTags": [
-          "investor activity"
+          "media",
+          "streaming"
         ],
         "regions": [
-          "Canada"
+          "Global"
         ],
-        "sectors": [],
+        "sectors": [
+          "Communication Services"
+        ],
         "commodities": [],
-        "technologyThemes": [],
+        "technologyThemes": [
+          "Streaming"
+        ],
+        "possibleDirectionalPressure": "unclear",
+        "uncertaintyNotes": [],
+        "evidence": [
+          "OTT releases this weekend bring a mix of highly anticipated movies and web series across platforms like Netflix, Prime Video, ZEE5, SonyLIV, JioHotstar and Apple TV+"
+        ],
+        "eventId": "evt_currents_c76aaf87-b93b-5781-b24d-10bd938c1ca9",
+        "sourceArticleIds": [
+          "currents_c76aaf87-b93b-5781-b24d-10bd938c1ca9"
+        ],
+        "relatedTickers": [
+          "AAPL"
+        ],
+        "sourceUrl": "https://economictimes.indiatimes.com/news/india/new-ott-releases-this-weekend-9-new-movies-and-shows-on-netflix-jiohotstar-prime-video-more/ott-releases-this-weekend/slideshow/131528056.cms",
+        "sourceName": "Others",
+        "sourceHeadline": "New OTT releases this weekend: 9 new movies and shows on Netflix, JioHotstar, Prime Video and more - OTT releases this weekend",
+        "publishedAt": "2026-06-05 09:45:46 +0000"
+      },
+      {
+        "articleId": "currents_9f169835-56d6-5c30-b52e-9b0d79a88342",
+        "eventType": "market_attention",
+        "eventSummary": "CNET reader survey indicates high expectations for Apple's upcoming WWDC event.",
+        "hardFacts": [
+          "94% of CNET readers expect a major announcement from Apple at WWDC"
+        ],
+        "mentionedTickers": [
+          "AAPL"
+        ],
+        "entities": [
+          "Apple",
+          "CNET",
+          "WWDC"
+        ],
+        "eventTags": [
+          "market sentiment",
+          "event"
+        ],
+        "regions": [
+          "Global"
+        ],
+        "sectors": [
+          "Technology"
+        ],
+        "commodities": [],
+        "technologyThemes": [
+          "Artificial Intelligence"
+        ],
         "possibleDirectionalPressure": "unclear",
         "uncertaintyNotes": [
-          "No direct impact on NVDA indicated."
+          "This reflects reader sentiment rather than company guidance."
         ],
         "evidence": [
-          "It may be worth asking what he sees in this Canadian company."
+          "94% of CNET Readers Think New Apple CEO's Big Splash Will Come at WWDC"
         ],
-        "eventId": "evt_finnhub_140468525",
+        "eventId": "evt_currents_9f169835-56d6-5c30-b52e-9b0d79a88342",
         "sourceArticleIds": [
-          "finnhub_140468525"
+          "currents_9f169835-56d6-5c30-b52e-9b0d79a88342"
         ],
         "relatedTickers": [
-          "NVDA"
+          "AAPL"
         ],
-        "sourceUrl": "https://finnhub.io/api/news?id=986c1ec072febfe01ca0dc284fe9be5d0cf9ff2c0398e40ce8d95fc157ec5e96",
-        "sourceName": "Yahoo",
-        "sourceHeadline": "Legendary Investor Chuck Akre Is Quietly Holding a Huge Position in This Company. Investors Should Pay Attention.",
-        "publishedAt": "2026-05-30T09:20:00+00:00"
+        "sourceUrl": "https://www.cnet.com/tech/cnet-big-guessing-game-round-1-guesses/",
+        "sourceName": "Dashia Milden",
+        "sourceHeadline": "94% of CNET Readers Think New Apple CEO's Big Splash Will Come at WWDC",
+        "publishedAt": "2026-06-05 09:30:00 +0000"
       },
       {
-        "articleId": "finnhub_140468526",
+        "articleId": "currents_65738ae9-c856-5ea6-b728-7071474c6cc8",
         "eventType": "market_attention",
-        "eventSummary": "Yahoo article predicts Bitcoin will reach $120,000 before year-end, with no direct mention of NVDA.",
+        "eventSummary": "The TV adaptation of Cape Fear has premiered on Apple TV+.",
         "hardFacts": [
-          "Two new catalysts could send Bitcoin soaring in the second half of 2026."
+          "Cape Fear TV adaptation premiered on Apple TV+"
         ],
         "mentionedTickers": [
-          "NVDA"
+          "AAPL"
         ],
         "entities": [
-          "Bitcoin"
+          "Apple TV+",
+          "Cape Fear"
         ],
         "eventTags": [
-          "cryptocurrency"
+          "media",
+          "streaming"
         ],
         "regions": [
-          "global"
+          "Global"
         ],
         "sectors": [
-          "financial"
+          "Communication Services"
         ],
-        "commodities": [
-          "Bitcoin"
+        "commodities": [],
+        "technologyThemes": [
+          "Streaming"
         ],
+        "possibleDirectionalPressure": "unclear",
+        "uncertaintyNotes": [],
+        "evidence": [
+          "The new TV adaptation of Cape Fear has premiered on Apple TV"
+        ],
+        "eventId": "evt_currents_65738ae9-c856-5ea6-b728-7071474c6cc8",
+        "sourceArticleIds": [
+          "currents_65738ae9-c856-5ea6-b728-7071474c6cc8"
+        ],
+        "relatedTickers": [
+          "AAPL"
+        ],
+        "sourceUrl": "https://www.nme.com/news/tv/every-song-on-the-cape-fear-2026-soundtrack-3949270",
+        "sourceName": "Max Pilley",
+        "sourceHeadline": "Every song on the 'Cape Fear' 2026 soundtrack",
+        "publishedAt": "2026-06-05 09:29:24 +0000"
+      },
+      {
+        "articleId": "currents_9c6c01f1-0a55-540a-a3d0-2cacd0fa73fc",
+        "eventType": "market_attention",
+        "eventSummary": "Starbucks has retired an AI inventory tool following frequent operational errors.",
+        "hardFacts": [
+          "Starbucks retired an AI inventory tool",
+          "Tool was retired due to frequent mistakes"
+        ],
+        "mentionedTickers": [
+          "SBUX"
+        ],
+        "entities": [
+          "Starbucks",
+          "Pizza Hut"
+        ],
+        "eventTags": [
+          "AI",
+          "operational failure"
+        ],
+        "regions": [
+          "Global"
+        ],
+        "sectors": [
+          "Consumer Discretionary"
+        ],
+        "commodities": [],
+        "technologyThemes": [
+          "Artificial Intelligence"
+        ],
+        "possibleDirectionalPressure": "negative",
+        "uncertaintyNotes": [],
+        "evidence": [
+          "Starbucks retired an AI inventory tool after frequent mistakes"
+        ],
+        "eventId": "evt_currents_9c6c01f1-0a55-540a-a3d0-2cacd0fa73fc",
+        "sourceArticleIds": [
+          "currents_9c6c01f1-0a55-540a-a3d0-2cacd0fa73fc"
+        ],
+        "relatedTickers": [
+          "SBUX"
+        ],
+        "sourceUrl": "https://www.inc.com/fast-company-2/ai-havoc-starbucks-pizza-hut-social-media/91356340",
+        "sourceName": "Fast Company",
+        "sourceHeadline": "AI Is Wreaking Havoc at Starbucks and Pizza Hut. Social Media Is Having a Field Day",
+        "publishedAt": "2026-06-05 09:30:00 +0000"
+      },
+      {
+        "articleId": "currents_363decb8-1694-5c29-9b92-cae7d7a25594",
+        "eventType": "other",
+        "eventSummary": "Livforsakringsbolaget Skandia Omsesidigt increased its stake in Delta Air Lines by 101.9% in Q4.",
+        "hardFacts": [
+          "Livforsakringsbolaget Skandia Omsesidigt increased stake in Delta Air Lines by 101.9%",
+          "Institutional investor owned 199,902 shares"
+        ],
+        "mentionedTickers": [
+          "DAL"
+        ],
+        "entities": [
+          "Delta Air Lines",
+          "Livforsakringsbolaget Skandia Omsesidigt"
+        ],
+        "eventTags": [
+          "SEC filing",
+          "institutional ownership"
+        ],
+        "regions": [
+          "USA"
+        ],
+        "sectors": [
+          "Industrials"
+        ],
+        "commodities": [],
         "technologyThemes": [],
         "possibleDirectionalPressure": "positive",
-        "uncertaintyNotes": [
-          "Potential positive impact on NVDA due to crypto market growth."
-        ],
+        "uncertaintyNotes": [],
         "evidence": [
-          "Two new catalysts could send Bitcoin soaring in the second half of 2026."
+          "Livforsakringsbolaget Skandia Omsesidigt boosted its holdings in Delta Air Lines, Inc. (NYSE:DAL - Free Report) by 101.9% during the 4th quarter"
         ],
-        "eventId": "evt_finnhub_140468526",
+        "eventId": "evt_currents_363decb8-1694-5c29-9b92-cae7d7a25594",
         "sourceArticleIds": [
-          "finnhub_140468526"
+          "currents_363decb8-1694-5c29-9b92-cae7d7a25594"
         ],
         "relatedTickers": [
-          "NVDA"
+          "DAL"
         ],
-        "sourceUrl": "https://finnhub.io/api/news?id=b74cf445235b0915f447c299d715cc4064082e94aec790066fdc5db52153695b",
-        "sourceName": "Yahoo",
-        "sourceHeadline": "Prediction: Bitcoin Will Hit $120,000 Before the End of the Year",
-        "publishedAt": "2026-05-30T09:13:00+00:00"
+        "sourceUrl": "https://www.marketbeat.com/instant-alerts/filing-delta-air-lines-inc-dal-stake-raised-by-livforsakringsbolaget-skandia-omsesidigt-2026-06-05/",
+        "sourceName": "MarketBeat",
+        "sourceHeadline": "Delta Air Lines, Inc. $DAL Stake Raised by Livforsakringsbolaget Skandia Omsesidigt",
+        "publishedAt": "2026-06-05 10:30:18 +0000"
       },
       {
-        "articleId": "finnhub_140468527",
-        "eventType": "market_attention",
-        "eventSummary": "Yahoo article discusses a warning indicator similar to 2007, with no direct mention of NVDA.",
+        "articleId": "currents_42a46915-a078-5a43-805c-0fef7eeb6aa7",
+        "eventType": "other",
+        "eventSummary": "Livforsakringsbolaget Skandia Omsesidigt reduced its stake in McDonald's by 75.5% in Q4.",
         "hardFacts": [
-          "Inflation tied to the Iran conflict may force the Federal Reserve to raise interest rates, and Warren Buffett says higher rates will compress stock market valuations."
+          "Livforsakringsbolaget Skandia Omsesidigt reduced stake in McDonald's by 75.5%",
+          "Fund owned 4,120 shares after the reduction"
         ],
         "mentionedTickers": [
-          "NVDA"
+          "MCD"
         ],
         "entities": [
-          "Warren Buffett"
+          "McDonald's",
+          "Livforsakringsbolaget Skandia Omsesidigt"
         ],
         "eventTags": [
-          "interest rates",
-          "market valuation"
+          "SEC filing",
+          "institutional ownership"
         ],
         "regions": [
-          "U.S."
+          "USA"
         ],
         "sectors": [
-          "financial"
+          "Consumer Discretionary"
         ],
         "commodities": [],
         "technologyThemes": [],
         "possibleDirectionalPressure": "negative",
-        "uncertaintyNotes": [
-          "Potential negative impact on NVDA due to rate hikes."
-        ],
+        "uncertaintyNotes": [],
         "evidence": [
-          "Inflation tied to the Iran conflict may force the Federal Reserve to raise interest rates, and Warren Buffett says higher rates will compress stock market valuations."
+          "Livforsakringsbolaget Skandia Omsesidigt reduced its position in shares of McDonald's Corporation (NYSE:MCD - Free Report) by 75.5% in the 4th quarter"
         ],
-        "eventId": "evt_finnhub_140468527",
+        "eventId": "evt_currents_42a46915-a078-5a43-805c-0fef7eeb6aa7",
         "sourceArticleIds": [
-          "finnhub_140468527"
+          "currents_42a46915-a078-5a43-805c-0fef7eeb6aa7"
         ],
         "relatedTickers": [
-          "NVDA"
+          "MCD"
         ],
-        "sourceUrl": "https://finnhub.io/api/news?id=2947c030feca38790779ab32120870c2202db70330edfecced6a455a72eb169c",
-        "sourceName": "Yahoo",
-        "sourceHeadline": "A Stock Market Indicator Flashes a Warning Last Seen in 2007. Warren Buffett Explains Why It Matters.",
-        "publishedAt": "2026-05-30T09:08:00+00:00"
-      },
-      {
-        "articleId": "finnhub_140468528",
-        "eventType": "market_attention",
-        "eventSummary": "Yahoo article explains SpaceX's largest market, unrelated to space, with no mention of NVDA.",
-        "hardFacts": [
-          "If you're interested in SpaceX, make sure to understand what it really does and what it plans to do."
-        ],
-        "mentionedTickers": [
-          "NVDA"
-        ],
-        "entities": [
-          "SpaceX"
-        ],
-        "eventTags": [
-          "space"
-        ],
-        "regions": [
-          "U.S."
-        ],
-        "sectors": [
-          "aerospace"
-        ],
-        "commodities": [],
-        "technologyThemes": [],
-        "possibleDirectionalPressure": "unclear",
-        "uncertaintyNotes": [
-          "No direct impact on NVDA indicated."
-        ],
-        "evidence": [
-          "If you're interested in SpaceX, make sure to understand what it really does and what it plans to do."
-        ],
-        "eventId": "evt_finnhub_140468528",
-        "sourceArticleIds": [
-          "finnhub_140468528"
-        ],
-        "relatedTickers": [
-          "NVDA"
-        ],
-        "sourceUrl": "https://finnhub.io/api/news?id=4903f8e749ed6631e4cea3405a902cd73b347422e237ba16cd8f52481af5a693",
-        "sourceName": "Yahoo",
-        "sourceHeadline": "This Is SpaceX's Biggest Market, and It Might Surprise You (Spoiler Alert: It Has Nothing to Do With Space)",
-        "publishedAt": "2026-05-30T08:50:00+00:00"
-      },
-      {
-        "articleId": "finnhub_140468529",
-        "eventType": "market_attention",
-        "eventSummary": "Yahoo article lists three high-dividend stocks down 20% to buy and hold, with no direct mention of NVDA.",
-        "hardFacts": [
-          "These high-yield consumer stocks can pay steady dividends for the long term."
-        ],
-        "mentionedTickers": [
-          "NVDA"
-        ],
-        "entities": [
-          "consumer stocks"
-        ],
-        "eventTags": [
-          "dividends"
-        ],
-        "regions": [],
-        "sectors": [
-          "consumer staples"
-        ],
-        "commodities": [],
-        "technologyThemes": [],
-        "possibleDirectionalPressure": "unclear",
-        "uncertaintyNotes": [
-          "No direct impact on NVDA indicated."
-        ],
-        "evidence": [
-          "These high-yield consumer stocks can pay steady dividends for the long term."
-        ],
-        "eventId": "evt_finnhub_140468529",
-        "sourceArticleIds": [
-          "finnhub_140468529"
-        ],
-        "relatedTickers": [
-          "NVDA"
-        ],
-        "sourceUrl": "https://finnhub.io/api/news?id=e2ee154ce48c5b5ac88ed995c558d9a94b1a7c7eeff7b3b5b59fa545c3b40328",
-        "sourceName": "Yahoo",
-        "sourceHeadline": "3 Magnificent Dividend Stocks Down 20% to Buy and Hold Forever",
-        "publishedAt": "2026-05-30T08:35:00+00:00"
-      },
-      {
-        "articleId": "finnhub_140468530",
-        "eventType": "market_attention",
-        "eventSummary": "Yahoo article discusses Trump's decisions fueling price shocks, with no direct mention of NVDA.",
-        "hardFacts": [
-          "President Donald Trump's decisions are fueling two concurrent price shocks."
-        ],
-        "mentionedTickers": [
-          "NVDA"
-        ],
-        "entities": [
-          "Donald Trump"
-        ],
-        "eventTags": [
-          "politics",
-          "market shocks"
-        ],
-        "regions": [
-          "U.S."
-        ],
-        "sectors": [],
-        "commodities": [],
-        "technologyThemes": [],
-        "possibleDirectionalPressure": "unclear",
-        "uncertaintyNotes": [
-          "No direct impact on NVDA indicated."
-        ],
-        "evidence": [
-          "President Donald Trump's decisions are fueling two concurrent price shocks."
-        ],
-        "eventId": "evt_finnhub_140468530",
-        "sourceArticleIds": [
-          "finnhub_140468530"
-        ],
-        "relatedTickers": [
-          "NVDA"
-        ],
-        "sourceUrl": "https://finnhub.io/api/news?id=9483c7bc6c5fe242cfbbd9e618d97b6cb74129f592f6e505a7ae790c7d16fe0a",
-        "sourceName": "Yahoo",
-        "sourceHeadline": "Trumpflation Isn't Close to Peaking -- and That's Terrible News for a Stock Market That's Priced for Perfection",
-        "publishedAt": "2026-05-30T08:26:00+00:00"
+        "sourceUrl": "https://www.marketbeat.com/instant-alerts/filing-livforsakringsbolaget-skandia-omsesidigt-has-126-million-stock-position-in-mcdonalds-corporation-mcd-2026-06-05/",
+        "sourceName": "MarketBeat",
+        "sourceHeadline": "Livforsakringsbolaget Skandia Omsesidigt Has $1.26 Million Stock Position in McDonald's Corporation $MCD",
+        "publishedAt": "2026-06-05 10:38:46 +0000"
       }
     ],
     "routedCandidates": [
       {
-        "candidateId": "cand_NVDA_evt_finn",
-        "ticker": "NVDA",
+        "candidateId": "cand_AAPL_evt_curr",
+        "ticker": "AAPL",
         "relationshipType": "direct",
-        "eventId": "evt_finnhub_140468523",
+        "eventId": "evt_currents_9264231c-bbc7-5d08-a6f4-98d031ba3c40",
         "impactPath": [
-          "NVDA"
+          "AAPL"
         ],
         "pathConfidence": 1.0,
-        "reasonForRouting": "Directly tagged in news source for ticker NVDA.",
+        "reasonForRouting": "Directly tagged in news source for ticker AAPL.",
         "ledgerDecision": "new",
         "newFacts": [
-          "The CLARITY Act cleared the Senate Banking Committee on May 14, but still needs 60 votes to clear a Senate filibuster, reconciliation with the House, and a presidential signature."
+          "Apple is expected to launch 11 devices soon",
+          "Expected devices include iPhone 18 Pro and iPad 12",
+          "Launches are anticipated to begin from September"
         ],
-        "catalystId": "cat_NVDA_1780136699_11"
+        "catalystId": "cat_AAPL_1780657851_0"
       },
       {
-        "candidateId": "cand_NVDA_evt_finn",
-        "ticker": "NVDA",
+        "candidateId": "cand_AAPL_evt_curr",
+        "ticker": "AAPL",
         "relationshipType": "direct",
-        "eventId": "evt_finnhub_140468527",
+        "eventId": "evt_currents_9714b0b7-af3f-53be-8b22-83f2282292d9",
         "impactPath": [
-          "NVDA"
+          "AAPL"
         ],
         "pathConfidence": 1.0,
-        "reasonForRouting": "Directly tagged in news source for ticker NVDA.",
+        "reasonForRouting": "Directly tagged in news source for ticker AAPL.",
         "ledgerDecision": "new",
         "newFacts": [
-          "Inflation tied to the Iran conflict may force the Federal Reserve to raise interest rates, and Warren Buffett says higher rates will compress stock market valuations."
+          "Apple Watch Series 11 is available with a $100 discount",
+          "Sale price is under $300"
         ],
-        "catalystId": "cat_NVDA_1780136699_12"
+        "catalystId": "cat_AAPL_1780657851_1"
       },
       {
-        "candidateId": "cand_NVDA_evt_finn",
-        "ticker": "NVDA",
+        "candidateId": "cand_AAPL_evt_curr",
+        "ticker": "AAPL",
         "relationshipType": "direct",
-        "eventId": "evt_finnhub_140468528",
+        "eventId": "evt_currents_c76aaf87-b93b-5781-b24d-10bd938c1ca9",
         "impactPath": [
-          "NVDA"
+          "AAPL"
         ],
         "pathConfidence": 1.0,
-        "reasonForRouting": "Directly tagged in news source for ticker NVDA.",
+        "reasonForRouting": "Directly tagged in news source for ticker AAPL.",
         "ledgerDecision": "new",
         "newFacts": [
-          "If you're interested in SpaceX, make sure to understand what it really does and what it plans to do."
+          "Apple TV+ is releasing new content this weekend"
         ],
-        "catalystId": "cat_NVDA_1780136699_13"
+        "catalystId": "cat_AAPL_1780657851_2"
       },
       {
-        "candidateId": "cand_NVDA_evt_finn",
-        "ticker": "NVDA",
+        "candidateId": "cand_AAPL_evt_curr",
+        "ticker": "AAPL",
         "relationshipType": "direct",
-        "eventId": "evt_finnhub_140468530",
+        "eventId": "evt_currents_9f169835-56d6-5c30-b52e-9b0d79a88342",
         "impactPath": [
-          "NVDA"
+          "AAPL"
         ],
         "pathConfidence": 1.0,
-        "reasonForRouting": "Directly tagged in news source for ticker NVDA.",
-        "ledgerDecision": "update",
+        "reasonForRouting": "Directly tagged in news source for ticker AAPL.",
+        "ledgerDecision": "new",
         "newFacts": [
-          "President Donald Trump's decisions are fueling two concurrent price shocks."
+          "94% of CNET readers expect a major announcement from Apple at WWDC"
         ],
-        "catalystId": "cat_NVDA_1780136699_12"
+        "catalystId": "cat_AAPL_1780657851_3"
+      },
+      {
+        "candidateId": "cand_AAPL_evt_curr",
+        "ticker": "AAPL",
+        "relationshipType": "direct",
+        "eventId": "evt_currents_65738ae9-c856-5ea6-b728-7071474c6cc8",
+        "impactPath": [
+          "AAPL"
+        ],
+        "pathConfidence": 1.0,
+        "reasonForRouting": "Directly tagged in news source for ticker AAPL.",
+        "ledgerDecision": "new",
+        "newFacts": [
+          "Cape Fear TV adaptation premiered on Apple TV+"
+        ],
+        "catalystId": "cat_AAPL_1780657851_4"
+      },
+      {
+        "candidateId": "cand_SBUX_evt_curr",
+        "ticker": "SBUX",
+        "relationshipType": "direct",
+        "eventId": "evt_currents_9c6c01f1-0a55-540a-a3d0-2cacd0fa73fc",
+        "impactPath": [
+          "SBUX"
+        ],
+        "pathConfidence": 1.0,
+        "reasonForRouting": "Directly tagged in news source for ticker SBUX.",
+        "ledgerDecision": "new",
+        "newFacts": [
+          "Starbucks retired an AI inventory tool",
+          "Tool was retired due to frequent mistakes"
+        ],
+        "catalystId": "cat_SBUX_1780657851_5"
+      },
+      {
+        "candidateId": "cand_DAL_evt_curr",
+        "ticker": "DAL",
+        "relationshipType": "direct",
+        "eventId": "evt_currents_363decb8-1694-5c29-9b92-cae7d7a25594",
+        "impactPath": [
+          "DAL"
+        ],
+        "pathConfidence": 1.0,
+        "reasonForRouting": "Directly tagged in news source for ticker DAL.",
+        "ledgerDecision": "new",
+        "newFacts": [
+          "Livforsakringsbolaget Skandia Omsesidigt increased stake in Delta Air Lines by 101.9%",
+          "Institutional investor owned 199,902 shares"
+        ],
+        "catalystId": "cat_DAL_1780657851_6"
+      },
+      {
+        "candidateId": "cand_MCD_evt_curr",
+        "ticker": "MCD",
+        "relationshipType": "direct",
+        "eventId": "evt_currents_42a46915-a078-5a43-805c-0fef7eeb6aa7",
+        "impactPath": [
+          "MCD"
+        ],
+        "pathConfidence": 1.0,
+        "reasonForRouting": "Directly tagged in news source for ticker MCD.",
+        "ledgerDecision": "new",
+        "newFacts": [
+          "Livforsakringsbolaget Skandia Omsesidigt reduced stake in McDonald's by 75.5%",
+          "Fund owned 4,120 shares after the reduction"
+        ],
+        "catalystId": "cat_MCD_1780657851_7"
       }
     ],
     "tickerBuckets": {
       "AAPL": {
         "ticker": "AAPL",
-        "directEvents": [],
+        "directEvents": [
+          {
+            "eventId": "evt_currents_9264231c-bbc7-5d08-a6f4-98d031ba3c40",
+            "catalystId": "cat_AAPL_1780657851_0",
+            "eventType": "market_attention",
+            "relationshipType": "direct",
+            "headline": "Apple said to launch 11 devices soon: iPhone 18 Pro, iPad 12 and more",
+            "sourceName": "Ankita Garg",
+            "eventSummary": "Reports suggest Apple is preparing to launch 11 new devices, including the iPhone 18 Pro and iPad 12, starting in September.",
+            "hardFacts": [
+              "Apple is expected to launch 11 devices soon",
+              "Expected devices include iPhone 18 Pro and iPad 12",
+              "Launches are anticipated to begin from September"
+            ],
+            "hardFactsTimed": [
+              {
+                "fact": "Apple is expected to launch 11 devices soon",
+                "publishedAt": "2026-06-05 10:38:50 +0000"
+              },
+              {
+                "fact": "Expected devices include iPhone 18 Pro and iPad 12",
+                "publishedAt": "2026-06-05 10:38:50 +0000"
+              },
+              {
+                "fact": "Launches are anticipated to begin from September",
+                "publishedAt": "2026-06-05 10:38:50 +0000"
+              }
+            ],
+            "mentionedTickers": [
+              "AAPL"
+            ],
+            "entities": [
+              "Apple",
+              "iPhone 18 Pro",
+              "iPad 12"
+            ],
+            "eventTags": [
+              "product launch",
+              "hardware"
+            ],
+            "regions": [
+              "Global"
+            ],
+            "sectors": [
+              "Technology"
+            ],
+            "commodities": [],
+            "technologyThemes": [
+              "Consumer Electronics"
+            ],
+            "possibleDirectionalPressure": "positive",
+            "sourceArticleIds": [
+              "currents_9264231c-bbc7-5d08-a6f4-98d031ba3c40"
+            ],
+            "sourceRelatedTickers": [
+              "AAPL"
+            ],
+            "sourceUrl": "https://www.indiatoday.in/technology/news/story/apple-likely-to-launch-11-devices-soon-iphone-18-pro-ipad-12-and-more-2922426-2026-06-05",
+            "uncertaintyNotes": [
+              "These are based on leaks and reports, not official company announcements."
+            ],
+            "publishedAt": "2026-06-05 10:38:50 +0000",
+            "impactPath": [
+              "AAPL"
+            ],
+            "reasonForRouting": "Directly tagged in news source for ticker AAPL."
+          },
+          {
+            "eventId": "evt_currents_9714b0b7-af3f-53be-8b22-83f2282292d9",
+            "catalystId": "cat_AAPL_1780657851_1",
+            "eventType": "market_attention",
+            "relationshipType": "direct",
+            "headline": "Best Apple Watch deal: Save $100 on Apple Watch Series 11",
+            "sourceName": "Hannah Hoolihan",
+            "eventSummary": "A promotional deal is offering a $100 discount on the Apple Watch Series 11.",
+            "hardFacts": [
+              "Apple Watch Series 11 is available with a $100 discount",
+              "Sale price is under $300"
+            ],
+            "hardFactsTimed": [
+              {
+                "fact": "Apple Watch Series 11 is available with a $100 discount",
+                "publishedAt": "2026-06-05 10:20:25 +0000"
+              },
+              {
+                "fact": "Sale price is under $300",
+                "publishedAt": "2026-06-05 10:20:25 +0000"
+              }
+            ],
+            "mentionedTickers": [
+              "AAPL"
+            ],
+            "entities": [
+              "Apple",
+              "Apple Watch Series 11"
+            ],
+            "eventTags": [
+              "retail",
+              "promotion"
+            ],
+            "regions": [
+              "Global"
+            ],
+            "sectors": [
+              "Technology",
+              "Retail"
+            ],
+            "commodities": [],
+            "technologyThemes": [
+              "Wearables"
+            ],
+            "possibleDirectionalPressure": "unclear",
+            "sourceArticleIds": [
+              "currents_9714b0b7-af3f-53be-8b22-83f2282292d9"
+            ],
+            "sourceRelatedTickers": [
+              "AAPL"
+            ],
+            "sourceUrl": "https://mashable.com/tech/june-5-apple-watch-series-11-deal",
+            "uncertaintyNotes": [],
+            "publishedAt": "2026-06-05 10:20:25 +0000",
+            "impactPath": [
+              "AAPL"
+            ],
+            "reasonForRouting": "Directly tagged in news source for ticker AAPL."
+          },
+          {
+            "eventId": "evt_currents_c76aaf87-b93b-5781-b24d-10bd938c1ca9",
+            "catalystId": "cat_AAPL_1780657851_2",
+            "eventType": "market_attention",
+            "relationshipType": "direct",
+            "headline": "New OTT releases this weekend: 9 new movies and shows on Netflix, JioHotstar, Prime Video and more - OTT releases this weekend",
+            "sourceName": "Others",
+            "eventSummary": "Apple TV+ is listed among platforms releasing new content this weekend.",
+            "hardFacts": [
+              "Apple TV+ is releasing new content this weekend"
+            ],
+            "hardFactsTimed": [
+              {
+                "fact": "Apple TV+ is releasing new content this weekend",
+                "publishedAt": "2026-06-05 09:45:46 +0000"
+              }
+            ],
+            "mentionedTickers": [
+              "AAPL"
+            ],
+            "entities": [
+              "Apple TV+",
+              "Netflix",
+              "Prime Video",
+              "ZEE5",
+              "SonyLIV",
+              "JioHotstar"
+            ],
+            "eventTags": [
+              "media",
+              "streaming"
+            ],
+            "regions": [
+              "Global"
+            ],
+            "sectors": [
+              "Communication Services"
+            ],
+            "commodities": [],
+            "technologyThemes": [
+              "Streaming"
+            ],
+            "possibleDirectionalPressure": "unclear",
+            "sourceArticleIds": [
+              "currents_c76aaf87-b93b-5781-b24d-10bd938c1ca9"
+            ],
+            "sourceRelatedTickers": [
+              "AAPL"
+            ],
+            "sourceUrl": "https://economictimes.indiatimes.com/news/india/new-ott-releases-this-weekend-9-new-movies-and-shows-on-netflix-jiohotstar-prime-video-more/ott-releases-this-weekend/slideshow/131528056.cms",
+            "uncertaintyNotes": [],
+            "publishedAt": "2026-06-05 09:45:46 +0000",
+            "impactPath": [
+              "AAPL"
+            ],
+            "reasonForRouting": "Directly tagged in news source for ticker AAPL."
+          },
+          {
+            "eventId": "evt_currents_9f169835-56d6-5c30-b52e-9b0d79a88342",
+            "catalystId": "cat_AAPL_1780657851_3",
+            "eventType": "market_attention",
+            "relationshipType": "direct",
+            "headline": "94% of CNET Readers Think New Apple CEO's Big Splash Will Come at WWDC",
+            "sourceName": "Dashia Milden",
+            "eventSummary": "CNET reader survey indicates high expectations for Apple's upcoming WWDC event.",
+            "hardFacts": [
+              "94% of CNET readers expect a major announcement from Apple at WWDC"
+            ],
+            "hardFactsTimed": [
+              {
+                "fact": "94% of CNET readers expect a major announcement from Apple at WWDC",
+                "publishedAt": "2026-06-05 09:30:00 +0000"
+              }
+            ],
+            "mentionedTickers": [
+              "AAPL"
+            ],
+            "entities": [
+              "Apple",
+              "CNET",
+              "WWDC"
+            ],
+            "eventTags": [
+              "market sentiment",
+              "event"
+            ],
+            "regions": [
+              "Global"
+            ],
+            "sectors": [
+              "Technology"
+            ],
+            "commodities": [],
+            "technologyThemes": [
+              "Artificial Intelligence"
+            ],
+            "possibleDirectionalPressure": "unclear",
+            "sourceArticleIds": [
+              "currents_9f169835-56d6-5c30-b52e-9b0d79a88342"
+            ],
+            "sourceRelatedTickers": [
+              "AAPL"
+            ],
+            "sourceUrl": "https://www.cnet.com/tech/cnet-big-guessing-game-round-1-guesses/",
+            "uncertaintyNotes": [
+              "This reflects reader sentiment rather than company guidance."
+            ],
+            "publishedAt": "2026-06-05 09:30:00 +0000",
+            "impactPath": [
+              "AAPL"
+            ],
+            "reasonForRouting": "Directly tagged in news source for ticker AAPL."
+          },
+          {
+            "eventId": "evt_currents_65738ae9-c856-5ea6-b728-7071474c6cc8",
+            "catalystId": "cat_AAPL_1780657851_4",
+            "eventType": "market_attention",
+            "relationshipType": "direct",
+            "headline": "Every song on the 'Cape Fear' 2026 soundtrack",
+            "sourceName": "Max Pilley",
+            "eventSummary": "The TV adaptation of Cape Fear has premiered on Apple TV+.",
+            "hardFacts": [
+              "Cape Fear TV adaptation premiered on Apple TV+"
+            ],
+            "hardFactsTimed": [
+              {
+                "fact": "Cape Fear TV adaptation premiered on Apple TV+",
+                "publishedAt": "2026-06-05 09:29:24 +0000"
+              }
+            ],
+            "mentionedTickers": [
+              "AAPL"
+            ],
+            "entities": [
+              "Apple TV+",
+              "Cape Fear"
+            ],
+            "eventTags": [
+              "media",
+              "streaming"
+            ],
+            "regions": [
+              "Global"
+            ],
+            "sectors": [
+              "Communication Services"
+            ],
+            "commodities": [],
+            "technologyThemes": [
+              "Streaming"
+            ],
+            "possibleDirectionalPressure": "unclear",
+            "sourceArticleIds": [
+              "currents_65738ae9-c856-5ea6-b728-7071474c6cc8"
+            ],
+            "sourceRelatedTickers": [
+              "AAPL"
+            ],
+            "sourceUrl": "https://www.nme.com/news/tv/every-song-on-the-cape-fear-2026-soundtrack-3949270",
+            "uncertaintyNotes": [],
+            "publishedAt": "2026-06-05 09:29:24 +0000",
+            "impactPath": [
+              "AAPL"
+            ],
+            "reasonForRouting": "Directly tagged in news source for ticker AAPL."
+          }
+        ],
         "crossImpactEvents": [],
         "suppressedDuplicateCount": 0
       },
@@ -2729,698 +3097,9 @@
       },
       "NVDA": {
         "ticker": "NVDA",
-        "directEvents": [
-          {
-            "eventId": "evt_finnhub_140468523",
-            "catalystId": "cat_NVDA_1780136699_11",
-            "eventType": "regulatory",
-            "relationshipType": "direct",
-            "headline": "What Happens to Crypto If the CLARITY Act Becomes Law in July?",
-            "sourceName": "Yahoo",
-            "eventSummary": "Yahoo article discusses the potential passage of the CLARITY Act, which could impact crypto regulation, with no direct mention of NVDA.",
-            "hardFacts": [
-              "The CLARITY Act cleared the Senate Banking Committee on May 14, but still needs 60 votes to clear a Senate filibuster, reconciliation with the House, and a presidential signature."
-            ],
-            "hardFactsTimed": [
-              {
-                "fact": "The CLARITY Act cleared the Senate Banking Committee on May 14, but still needs 60 votes to clear a Senate filibuster, reconciliation with the House, and a presidential signature.",
-                "publishedAt": "2026-05-30T09:30:57+00:00"
-              }
-            ],
-            "mentionedTickers": [
-              "NVDA"
-            ],
-            "entities": [
-              "CLARITY Act"
-            ],
-            "eventTags": [
-              "regulation",
-              "crypto"
-            ],
-            "regions": [
-              "U.S."
-            ],
-            "sectors": [
-              "regulatory"
-            ],
-            "commodities": [],
-            "technologyThemes": [],
-            "possibleDirectionalPressure": "unclear",
-            "sourceArticleIds": [
-              "finnhub_140468523"
-            ],
-            "sourceRelatedTickers": [
-              "NVDA"
-            ],
-            "sourceUrl": "https://finnhub.io/api/news?id=f663aaf8310b22ceb2031bc862aa2ce0b8585a49c20f977958bc37e44dd0ec4c",
-            "uncertaintyNotes": [
-              "No direct impact on NVDA indicated."
-            ],
-            "publishedAt": "2026-05-30T09:30:57+00:00",
-            "impactPath": [
-              "NVDA"
-            ],
-            "reasonForRouting": "Directly tagged in news source for ticker NVDA."
-          },
-          {
-            "eventId": "evt_finnhub_140468527",
-            "catalystId": "cat_NVDA_1780136699_12",
-            "eventType": "market_attention",
-            "relationshipType": "direct",
-            "headline": "A Stock Market Indicator Flashes a Warning Last Seen in 2007. Warren Buffett Explains Why It Matters.",
-            "sourceName": "Yahoo",
-            "eventSummary": "Yahoo article discusses a warning indicator similar to 2007, with no direct mention of NVDA.",
-            "hardFacts": [
-              "Inflation tied to the Iran conflict may force the Federal Reserve to raise interest rates, and Warren Buffett says higher rates will compress stock market valuations.",
-              "President Donald Trump's decisions are fueling two concurrent price shocks."
-            ],
-            "hardFactsTimed": [
-              {
-                "fact": "Inflation tied to the Iran conflict may force the Federal Reserve to raise interest rates, and Warren Buffett says higher rates will compress stock market valuations.",
-                "publishedAt": "2026-05-30T09:08:00+00:00"
-              },
-              {
-                "fact": "President Donald Trump's decisions are fueling two concurrent price shocks.",
-                "publishedAt": "2026-05-30T08:26:00+00:00"
-              }
-            ],
-            "mentionedTickers": [
-              "NVDA"
-            ],
-            "entities": [
-              "Warren Buffett"
-            ],
-            "eventTags": [
-              "interest rates",
-              "market valuation"
-            ],
-            "regions": [
-              "U.S."
-            ],
-            "sectors": [
-              "financial"
-            ],
-            "commodities": [],
-            "technologyThemes": [],
-            "possibleDirectionalPressure": "negative",
-            "sourceArticleIds": [
-              "finnhub_140468527"
-            ],
-            "sourceRelatedTickers": [
-              "NVDA"
-            ],
-            "sourceUrl": "https://finnhub.io/api/news?id=2947c030feca38790779ab32120870c2202db70330edfecced6a455a72eb169c",
-            "uncertaintyNotes": [
-              "Potential negative impact on NVDA due to rate hikes."
-            ],
-            "publishedAt": "2026-05-30T09:08:00+00:00",
-            "impactPath": [
-              "NVDA"
-            ],
-            "reasonForRouting": "Directly tagged in news source for ticker NVDA."
-          },
-          {
-            "eventId": "evt_finnhub_140468528",
-            "catalystId": "cat_NVDA_1780136699_13",
-            "eventType": "market_attention",
-            "relationshipType": "direct",
-            "headline": "This Is SpaceX's Biggest Market, and It Might Surprise You (Spoiler Alert: It Has Nothing to Do With Space)",
-            "sourceName": "Yahoo",
-            "eventSummary": "Yahoo article explains SpaceX's largest market, unrelated to space, with no mention of NVDA.",
-            "hardFacts": [
-              "If you're interested in SpaceX, make sure to understand what it really does and what it plans to do."
-            ],
-            "hardFactsTimed": [
-              {
-                "fact": "If you're interested in SpaceX, make sure to understand what it really does and what it plans to do.",
-                "publishedAt": "2026-05-30T08:50:00+00:00"
-              }
-            ],
-            "mentionedTickers": [
-              "NVDA"
-            ],
-            "entities": [
-              "SpaceX"
-            ],
-            "eventTags": [
-              "space"
-            ],
-            "regions": [
-              "U.S."
-            ],
-            "sectors": [
-              "aerospace"
-            ],
-            "commodities": [],
-            "technologyThemes": [],
-            "possibleDirectionalPressure": "unclear",
-            "sourceArticleIds": [
-              "finnhub_140468528"
-            ],
-            "sourceRelatedTickers": [
-              "NVDA"
-            ],
-            "sourceUrl": "https://finnhub.io/api/news?id=4903f8e749ed6631e4cea3405a902cd73b347422e237ba16cd8f52481af5a693",
-            "uncertaintyNotes": [
-              "No direct impact on NVDA indicated."
-            ],
-            "publishedAt": "2026-05-30T08:50:00+00:00",
-            "impactPath": [
-              "NVDA"
-            ],
-            "reasonForRouting": "Directly tagged in news source for ticker NVDA."
-          },
-          {
-            "eventId": "evt_finnhub_140468530",
-            "catalystId": "cat_NVDA_1780136699_12",
-            "eventType": "market_attention",
-            "relationshipType": "direct",
-            "headline": "Trumpflation Isn't Close to Peaking -- and That's Terrible News for a Stock Market That's Priced for Perfection",
-            "sourceName": "Yahoo",
-            "eventSummary": "Yahoo article discusses Trump's decisions fueling price shocks, with no direct mention of NVDA.",
-            "hardFacts": [
-              "Inflation tied to the Iran conflict may force the Federal Reserve to raise interest rates, and Warren Buffett says higher rates will compress stock market valuations.",
-              "President Donald Trump's decisions are fueling two concurrent price shocks."
-            ],
-            "hardFactsTimed": [
-              {
-                "fact": "Inflation tied to the Iran conflict may force the Federal Reserve to raise interest rates, and Warren Buffett says higher rates will compress stock market valuations.",
-                "publishedAt": "2026-05-30T09:08:00+00:00"
-              },
-              {
-                "fact": "President Donald Trump's decisions are fueling two concurrent price shocks.",
-                "publishedAt": "2026-05-30T08:26:00+00:00"
-              }
-            ],
-            "mentionedTickers": [
-              "NVDA"
-            ],
-            "entities": [
-              "Donald Trump"
-            ],
-            "eventTags": [
-              "politics",
-              "market shocks"
-            ],
-            "regions": [
-              "U.S."
-            ],
-            "sectors": [],
-            "commodities": [],
-            "technologyThemes": [],
-            "possibleDirectionalPressure": "unclear",
-            "sourceArticleIds": [
-              "finnhub_140468530"
-            ],
-            "sourceRelatedTickers": [
-              "NVDA"
-            ],
-            "sourceUrl": "https://finnhub.io/api/news?id=9483c7bc6c5fe242cfbbd9e618d97b6cb74129f592f6e505a7ae790c7d16fe0a",
-            "uncertaintyNotes": [
-              "No direct impact on NVDA indicated."
-            ],
-            "publishedAt": "2026-05-30T08:26:00+00:00",
-            "impactPath": [
-              "NVDA"
-            ],
-            "reasonForRouting": "Directly tagged in news source for ticker NVDA."
-          },
-          {
-            "eventId": "evt_cat_NVDA_1780136679_0",
-            "catalystId": "cat_NVDA_1780136679_0",
-            "eventType": "market_attention",
-            "relationshipType": "direct",
-            "headline": "This Under-the-Radar Top Tech Investor Has 40% of His Portfolio in These 4 AI Stocks",
-            "sourceName": "",
-            "eventSummary": "Yahoo article reports Glen Kacher of Light Street Capital has 40% of his portfolio in four AI stocks, focusing on semiconductor stocks.",
-            "hardFacts": [
-              "Glen Kacher of Light Street Capital has made these top semiconductor stocks the focus of his portfolio"
-            ],
-            "hardFactsTimed": [
-              {
-                "fact": "Glen Kacher of Light Street Capital has made these top semiconductor stocks the focus of his portfolio",
-                "publishedAt": "2026-05-30T09:51:00+00:00"
-              }
-            ],
-            "mentionedTickers": [
-              "NVDA"
-            ],
-            "entities": [],
-            "eventTags": [],
-            "regions": [],
-            "sectors": [],
-            "commodities": [],
-            "technologyThemes": [],
-            "possibleDirectionalPressure": "positive",
-            "sourceArticleIds": [
-              "finnhub_140468520"
-            ],
-            "sourceRelatedTickers": [
-              "NVDA"
-            ],
-            "sourceUrl": "https://finnhub.io/api/news?id=1f98b2653bc14eb6e28da197a2c61b84bf072a830911991f93cdfa3cdb456a11",
-            "uncertaintyNotes": [
-              "Focus on AI stocks may influence investor attention"
-            ],
-            "publishedAt": "2026-05-30T09:51:00+00:00",
-            "impactPath": [
-              "NVDA"
-            ],
-            "reasonForRouting": "Restored direct catalyst memory for ticker NVDA."
-          },
-          {
-            "eventId": "evt_cat_NVDA_1780136679_1",
-            "catalystId": "cat_NVDA_1780136679_1",
-            "eventType": "market_attention",
-            "relationshipType": "direct",
-            "headline": "This Dividend King Stock Just Offered a Superb Buy-the-Dip Opportunity",
-            "sourceName": "",
-            "eventSummary": "Yahoo article discusses Walmart facing short-term pressures, presenting a buy-the-dip opportunity.",
-            "hardFacts": [
-              "Walmart is facing short-term pressures"
-            ],
-            "hardFactsTimed": [
-              {
-                "fact": "Walmart is facing short-term pressures",
-                "publishedAt": "2026-05-30T09:45:00+00:00"
-              }
-            ],
-            "mentionedTickers": [
-              "NVDA"
-            ],
-            "entities": [],
-            "eventTags": [],
-            "regions": [],
-            "sectors": [],
-            "commodities": [],
-            "technologyThemes": [],
-            "possibleDirectionalPressure": "unclear",
-            "sourceArticleIds": [
-              "finnhub_140468521"
-            ],
-            "sourceRelatedTickers": [
-              "NVDA"
-            ],
-            "sourceUrl": "https://finnhub.io/api/news?id=1b942a955da0048d4e7de7a9aacf5010c3c0a29ee6f1be8767cc1eaac6cc9b2a",
-            "uncertaintyNotes": [
-              "The article suggests a long-term opportunity despite short-term pressures"
-            ],
-            "publishedAt": "2026-05-30T09:45:00+00:00",
-            "impactPath": [
-              "NVDA"
-            ],
-            "reasonForRouting": "Restored direct catalyst memory for ticker NVDA."
-          },
-          {
-            "eventId": "evt_cat_NVDA_1780136679_2",
-            "catalystId": "cat_NVDA_1780136679_2",
-            "eventType": "market_attention",
-            "relationshipType": "direct",
-            "headline": "QQQI\u2019s 13.8% Monthly Yield Comes With a Hidden Cost Investors Miss",
-            "sourceName": "",
-            "eventSummary": "Yahoo article explains the high yield of the Nasdaq-100 High Income ETF (QQQI) and its hidden costs.",
-            "hardFacts": [
-              "The NEOS Nasdaq-100 High Income ETF (NASDAQ:QQQI) has grown to roughly $9.4 billion in assets in just over two years"
-            ],
-            "hardFactsTimed": [
-              {
-                "fact": "The NEOS Nasdaq-100 High Income ETF (NASDAQ:QQQI) has grown to roughly $9.4 billion in assets in just over two years",
-                "publishedAt": "2026-05-30T09:38:52+00:00"
-              }
-            ],
-            "mentionedTickers": [
-              "NVDA"
-            ],
-            "entities": [],
-            "eventTags": [],
-            "regions": [],
-            "sectors": [],
-            "commodities": [],
-            "technologyThemes": [],
-            "possibleDirectionalPressure": "unclear",
-            "sourceArticleIds": [
-              "finnhub_140468522"
-            ],
-            "sourceRelatedTickers": [
-              "NVDA"
-            ],
-            "sourceUrl": "https://finnhub.io/api/news?id=57835351b81047712de83135e3fed96337329af27b7444daed83378ded0dc270",
-            "uncertaintyNotes": [
-              "Focus on high yield ETF may influence investor attention"
-            ],
-            "publishedAt": "2026-05-30T09:38:52+00:00",
-            "impactPath": [
-              "NVDA"
-            ],
-            "reasonForRouting": "Restored direct catalyst memory for ticker NVDA."
-          },
-          {
-            "eventId": "evt_cat_NVDA_1780136679_3",
-            "catalystId": "cat_NVDA_1780136679_3",
-            "eventType": "other",
-            "relationshipType": "direct",
-            "headline": "What Happens to Crypto If the CLARITY Act Becomes Law in July?",
-            "sourceName": "",
-            "eventSummary": "Yahoo article discusses the potential impact of the CLARITY Act becoming law on the crypto market.",
-            "hardFacts": [
-              "The CLARITY Act cleared the Senate Banking Committee on May 14"
-            ],
-            "hardFactsTimed": [
-              {
-                "fact": "The CLARITY Act cleared the Senate Banking Committee on May 14",
-                "publishedAt": "2026-05-30T09:30:57+00:00"
-              }
-            ],
-            "mentionedTickers": [
-              "NVDA"
-            ],
-            "entities": [],
-            "eventTags": [],
-            "regions": [],
-            "sectors": [],
-            "commodities": [],
-            "technologyThemes": [],
-            "possibleDirectionalPressure": "unclear",
-            "sourceArticleIds": [
-              "finnhub_140468523"
-            ],
-            "sourceRelatedTickers": [
-              "NVDA"
-            ],
-            "sourceUrl": "https://finnhub.io/api/news?id=f663aaf8310b22ceb2031bc862aa2ce0b8585a49c20f977958bc37e44dd0ec4c",
-            "uncertaintyNotes": [
-              "The bill's passage is uncertain, affecting market expectations"
-            ],
-            "publishedAt": "2026-05-30T09:30:57+00:00",
-            "impactPath": [
-              "NVDA"
-            ],
-            "reasonForRouting": "Restored direct catalyst memory for ticker NVDA."
-          },
-          {
-            "eventId": "evt_cat_NVDA_1780136679_4",
-            "catalystId": "cat_NVDA_1780136679_4",
-            "eventType": "market_attention",
-            "relationshipType": "direct",
-            "headline": "Prediction: This Trend, Launched by Cerebras, Could Supercharge the AI Bull Market This Year",
-            "sourceName": "",
-            "eventSummary": "Yahoo article suggests a new AI trend launched by Cerebras could boost the AI bull market.",
-            "hardFacts": [
-              "Investors may soon have a new batch of AI stocks to choose from"
-            ],
-            "hardFactsTimed": [
-              {
-                "fact": "Investors may soon have a new batch of AI stocks to choose from",
-                "publishedAt": "2026-05-30T09:25:00+00:00"
-              }
-            ],
-            "mentionedTickers": [
-              "NVDA"
-            ],
-            "entities": [],
-            "eventTags": [],
-            "regions": [],
-            "sectors": [],
-            "commodities": [],
-            "technologyThemes": [],
-            "possibleDirectionalPressure": "positive",
-            "sourceArticleIds": [
-              "finnhub_140468524"
-            ],
-            "sourceRelatedTickers": [
-              "NVDA"
-            ],
-            "sourceUrl": "https://finnhub.io/api/news?id=5e7e9985ba092a9fc6a16dd522661899564c288009500280f321bf38b7bbb1dc",
-            "uncertaintyNotes": [
-              "The trend's impact on the market is speculative"
-            ],
-            "publishedAt": "2026-05-30T09:25:00+00:00",
-            "impactPath": [
-              "NVDA"
-            ],
-            "reasonForRouting": "Restored direct catalyst memory for ticker NVDA."
-          },
-          {
-            "eventId": "evt_cat_NVDA_1780136679_5",
-            "catalystId": "cat_NVDA_1780136679_5",
-            "eventType": "market_attention",
-            "relationshipType": "direct",
-            "headline": "Legendary Investor Chuck Akre Is Quietly Holding a Huge Position in This Company. Investors Should Pay Attention.",
-            "sourceName": "",
-            "eventSummary": "Yahoo article reports that legendary investor Chuck Akre is holding a large position in a Canadian company, implying investor attention.",
-            "hardFacts": [
-              "Legendary Investor Chuck Akre Is Quietly Holding a Huge Position in This Company"
-            ],
-            "hardFactsTimed": [
-              {
-                "fact": "Legendary Investor Chuck Akre Is Quietly Holding a Huge Position in This Company",
-                "publishedAt": "2026-05-30T09:20:00+00:00"
-              }
-            ],
-            "mentionedTickers": [
-              "NVDA"
-            ],
-            "entities": [],
-            "eventTags": [],
-            "regions": [],
-            "sectors": [],
-            "commodities": [],
-            "technologyThemes": [],
-            "possibleDirectionalPressure": "unclear",
-            "sourceArticleIds": [
-              "finnhub_140468525"
-            ],
-            "sourceRelatedTickers": [
-              "NVDA"
-            ],
-            "sourceUrl": "https://finnhub.io/api/news?id=986c1ec072febfe01ca0dc284fe9be5d0cf9ff2c0398e40ce8d95fc157ec5e96",
-            "uncertaintyNotes": [
-              "The specific company is not named, so impact is uncertain"
-            ],
-            "publishedAt": "2026-05-30T09:20:00+00:00",
-            "impactPath": [
-              "NVDA"
-            ],
-            "reasonForRouting": "Restored direct catalyst memory for ticker NVDA."
-          },
-          {
-            "eventId": "evt_cat_NVDA_1780136679_6",
-            "catalystId": "cat_NVDA_1780136679_6",
-            "eventType": "market_attention",
-            "relationshipType": "direct",
-            "headline": "Prediction: Bitcoin Will Hit $120,000 Before the End of the Year",
-            "sourceName": "",
-            "eventSummary": "Yahoo article predicts Bitcoin will reach $120,000 before year-end, citing two catalysts.",
-            "hardFacts": [
-              "Bitcoin Will Hit $120,000 Before the End of the Year"
-            ],
-            "hardFactsTimed": [
-              {
-                "fact": "Bitcoin Will Hit $120,000 Before the End of the Year",
-                "publishedAt": "2026-05-30T09:13:00+00:00"
-              }
-            ],
-            "mentionedTickers": [
-              "NVDA"
-            ],
-            "entities": [],
-            "eventTags": [],
-            "regions": [],
-            "sectors": [],
-            "commodities": [],
-            "technologyThemes": [],
-            "possibleDirectionalPressure": "positive",
-            "sourceArticleIds": [
-              "finnhub_140468526"
-            ],
-            "sourceRelatedTickers": [
-              "NVDA"
-            ],
-            "sourceUrl": "https://finnhub.io/api/news?id=b74cf445235b0915f447c299d715cc4064082e94aec790066fdc5db52153695b",
-            "uncertaintyNotes": [
-              "Price prediction is speculative, based on catalysts"
-            ],
-            "publishedAt": "2026-05-30T09:13:00+00:00",
-            "impactPath": [
-              "NVDA"
-            ],
-            "reasonForRouting": "Restored direct catalyst memory for ticker NVDA."
-          },
-          {
-            "eventId": "evt_cat_NVDA_1780136679_7",
-            "catalystId": "cat_NVDA_1780136679_7",
-            "eventType": "other",
-            "relationshipType": "direct",
-            "headline": "A Stock Market Indicator Flashes a Warning Last Seen in 2007. Warren Buffett Explains Why It Matters.",
-            "sourceName": "",
-            "eventSummary": "Yahoo article discusses a warning indicator similar to 2007, with Warren Buffett's commentary on higher interest rates.",
-            "hardFacts": [
-              "A stock market indicator flashes a warning last seen in 2007"
-            ],
-            "hardFactsTimed": [
-              {
-                "fact": "A stock market indicator flashes a warning last seen in 2007",
-                "publishedAt": "2026-05-30T09:08:00+00:00"
-              }
-            ],
-            "mentionedTickers": [
-              "NVDA"
-            ],
-            "entities": [],
-            "eventTags": [],
-            "regions": [],
-            "sectors": [],
-            "commodities": [],
-            "technologyThemes": [],
-            "possibleDirectionalPressure": "unclear",
-            "sourceArticleIds": [
-              "finnhub_140468527"
-            ],
-            "sourceRelatedTickers": [
-              "NVDA"
-            ],
-            "sourceUrl": "https://finnhub.io/api/news?id=2947c030feca38790779ab32120870c2202db70330edfecced6a455a72eb169c",
-            "uncertaintyNotes": [
-              "The indicator's implications are uncertain"
-            ],
-            "publishedAt": "2026-05-30T09:08:00+00:00",
-            "impactPath": [
-              "NVDA"
-            ],
-            "reasonForRouting": "Restored direct catalyst memory for ticker NVDA."
-          },
-          {
-            "eventId": "evt_cat_NVDA_1780136679_8",
-            "catalystId": "cat_NVDA_1780136679_8",
-            "eventType": "other",
-            "relationshipType": "direct",
-            "headline": "This Is SpaceX's Biggest Market, and It Might Surprise You (Spoiler Alert: It Has Nothing to Do With Space)",
-            "sourceName": "",
-            "eventSummary": "Yahoo article discusses SpaceX's largest market, which is not space-related, and what it plans to do.",
-            "hardFacts": [
-              "This Is SpaceX's Biggest Market, and It Might Surprise You (Spoiler Alert: It Has Nothing To Do With Space)"
-            ],
-            "hardFactsTimed": [
-              {
-                "fact": "This Is SpaceX's Biggest Market, and It Might Surprise You (Spoiler Alert: It Has Nothing To Do With Space)",
-                "publishedAt": "2026-05-30T08:50:00+00:00"
-              }
-            ],
-            "mentionedTickers": [
-              "NVDA"
-            ],
-            "entities": [],
-            "eventTags": [],
-            "regions": [],
-            "sectors": [],
-            "commodities": [],
-            "technologyThemes": [],
-            "possibleDirectionalPressure": "unclear",
-            "sourceArticleIds": [
-              "finnhub_140468528"
-            ],
-            "sourceRelatedTickers": [
-              "NVDA"
-            ],
-            "sourceUrl": "https://finnhub.io/api/news?id=4903f8e749ed6631e4cea3405a902cd73b347422e237ba16cd8f52481af5a693",
-            "uncertaintyNotes": [
-              "Market impact is speculative"
-            ],
-            "publishedAt": "2026-05-30T08:50:00+00:00",
-            "impactPath": [
-              "NVDA"
-            ],
-            "reasonForRouting": "Restored direct catalyst memory for ticker NVDA."
-          },
-          {
-            "eventId": "evt_cat_NVDA_1780136680_9",
-            "catalystId": "cat_NVDA_1780136680_9",
-            "eventType": "market_attention",
-            "relationshipType": "direct",
-            "headline": "3 Magnificent Dividend Stocks Down 20% to Buy and Hold Forever",
-            "sourceName": "",
-            "eventSummary": "Yahoo article recommends buying three high-dividend stocks that are down 20%, suitable for long-term holding.",
-            "hardFacts": [
-              "These high-yield consumer stocks can pay steady dividends for the long term"
-            ],
-            "hardFactsTimed": [
-              {
-                "fact": "These high-yield consumer stocks can pay steady dividends for the long term",
-                "publishedAt": "2026-05-30T08:35:00+00:00"
-              }
-            ],
-            "mentionedTickers": [
-              "NVDA"
-            ],
-            "entities": [],
-            "eventTags": [],
-            "regions": [],
-            "sectors": [],
-            "commodities": [],
-            "technologyThemes": [],
-            "possibleDirectionalPressure": "unclear",
-            "sourceArticleIds": [
-              "finnhub_140468529"
-            ],
-            "sourceRelatedTickers": [
-              "NVDA"
-            ],
-            "sourceUrl": "https://finnhub.io/api/news?id=e2ee154ce48c5b5ac88ed995c558d9a94b1a7c7eeff7b3b5b59fa545c3b40328",
-            "uncertaintyNotes": [
-              "The stocks are down 20%, but long-term prospects are implied to be good"
-            ],
-            "publishedAt": "2026-05-30T08:35:00+00:00",
-            "impactPath": [
-              "NVDA"
-            ],
-            "reasonForRouting": "Restored direct catalyst memory for ticker NVDA."
-          },
-          {
-            "eventId": "evt_cat_NVDA_1780136680_10",
-            "catalystId": "cat_NVDA_1780136680_10",
-            "eventType": "market_attention",
-            "relationshipType": "direct",
-            "headline": "Trumpflation Isn't Close to Peaking -- and That's Terrible News for a Stock Market That's Priced for Perfection",
-            "sourceName": "",
-            "eventSummary": "Yahoo article states that Trump's policies are causing price shocks, which are bad for a stock market priced for perfection.",
-            "hardFacts": [
-              "President Donald Trump's decisions are fueling two concurrent price shocks"
-            ],
-            "hardFactsTimed": [
-              {
-                "fact": "President Donald Trump's decisions are fueling two concurrent price shocks",
-                "publishedAt": "2026-05-30T08:26:00+00:00"
-              }
-            ],
-            "mentionedTickers": [
-              "NVDA"
-            ],
-            "entities": [],
-            "eventTags": [],
-            "regions": [],
-            "sectors": [],
-            "commodities": [],
-            "technologyThemes": [],
-            "possibleDirectionalPressure": "unclear",
-            "sourceArticleIds": [
-              "finnhub_140468530"
-            ],
-            "sourceRelatedTickers": [
-              "NVDA"
-            ],
-            "sourceUrl": "https://finnhub.io/api/news?id=9483c7bc6c5fe242cfbbd9e618d97b6cb74129f592f6e505a7ae790c7d16fe0a",
-            "uncertaintyNotes": [
-              "The impact of Trump's policies on the market is uncertain"
-            ],
-            "publishedAt": "2026-05-30T08:26:00+00:00",
-            "impactPath": [
-              "NVDA"
-            ],
-            "reasonForRouting": "Restored direct catalyst memory for ticker NVDA."
-          }
-        ],
+        "directEvents": [],
         "crossImpactEvents": [],
-        "suppressedDuplicateCount": 7
+        "suppressedDuplicateCount": 0
       },
       "TSM": {
         "ticker": "TSM",
@@ -3430,19 +3109,192 @@
       },
       "DAL": {
         "ticker": "DAL",
-        "directEvents": [],
+        "directEvents": [
+          {
+            "eventId": "evt_currents_363decb8-1694-5c29-9b92-cae7d7a25594",
+            "catalystId": "cat_DAL_1780657851_6",
+            "eventType": "other",
+            "relationshipType": "direct",
+            "headline": "Delta Air Lines, Inc. $DAL Stake Raised by Livforsakringsbolaget Skandia Omsesidigt",
+            "sourceName": "MarketBeat",
+            "eventSummary": "Livforsakringsbolaget Skandia Omsesidigt increased its stake in Delta Air Lines by 101.9% in Q4.",
+            "hardFacts": [
+              "Livforsakringsbolaget Skandia Omsesidigt increased stake in Delta Air Lines by 101.9%",
+              "Institutional investor owned 199,902 shares"
+            ],
+            "hardFactsTimed": [
+              {
+                "fact": "Livforsakringsbolaget Skandia Omsesidigt increased stake in Delta Air Lines by 101.9%",
+                "publishedAt": "2026-06-05 10:30:18 +0000"
+              },
+              {
+                "fact": "Institutional investor owned 199,902 shares",
+                "publishedAt": "2026-06-05 10:30:18 +0000"
+              }
+            ],
+            "mentionedTickers": [
+              "DAL"
+            ],
+            "entities": [
+              "Delta Air Lines",
+              "Livforsakringsbolaget Skandia Omsesidigt"
+            ],
+            "eventTags": [
+              "SEC filing",
+              "institutional ownership"
+            ],
+            "regions": [
+              "USA"
+            ],
+            "sectors": [
+              "Industrials"
+            ],
+            "commodities": [],
+            "technologyThemes": [],
+            "possibleDirectionalPressure": "positive",
+            "sourceArticleIds": [
+              "currents_363decb8-1694-5c29-9b92-cae7d7a25594"
+            ],
+            "sourceRelatedTickers": [
+              "DAL"
+            ],
+            "sourceUrl": "https://www.marketbeat.com/instant-alerts/filing-delta-air-lines-inc-dal-stake-raised-by-livforsakringsbolaget-skandia-omsesidigt-2026-06-05/",
+            "uncertaintyNotes": [],
+            "publishedAt": "2026-06-05 10:30:18 +0000",
+            "impactPath": [
+              "DAL"
+            ],
+            "reasonForRouting": "Directly tagged in news source for ticker DAL."
+          }
+        ],
         "crossImpactEvents": [],
         "suppressedDuplicateCount": 0
       },
       "MCD": {
         "ticker": "MCD",
-        "directEvents": [],
+        "directEvents": [
+          {
+            "eventId": "evt_currents_42a46915-a078-5a43-805c-0fef7eeb6aa7",
+            "catalystId": "cat_MCD_1780657851_7",
+            "eventType": "other",
+            "relationshipType": "direct",
+            "headline": "Livforsakringsbolaget Skandia Omsesidigt Has $1.26 Million Stock Position in McDonald's Corporation $MCD",
+            "sourceName": "MarketBeat",
+            "eventSummary": "Livforsakringsbolaget Skandia Omsesidigt reduced its stake in McDonald's by 75.5% in Q4.",
+            "hardFacts": [
+              "Livforsakringsbolaget Skandia Omsesidigt reduced stake in McDonald's by 75.5%",
+              "Fund owned 4,120 shares after the reduction"
+            ],
+            "hardFactsTimed": [
+              {
+                "fact": "Livforsakringsbolaget Skandia Omsesidigt reduced stake in McDonald's by 75.5%",
+                "publishedAt": "2026-06-05 10:38:46 +0000"
+              },
+              {
+                "fact": "Fund owned 4,120 shares after the reduction",
+                "publishedAt": "2026-06-05 10:38:46 +0000"
+              }
+            ],
+            "mentionedTickers": [
+              "MCD"
+            ],
+            "entities": [
+              "McDonald's",
+              "Livforsakringsbolaget Skandia Omsesidigt"
+            ],
+            "eventTags": [
+              "SEC filing",
+              "institutional ownership"
+            ],
+            "regions": [
+              "USA"
+            ],
+            "sectors": [
+              "Consumer Discretionary"
+            ],
+            "commodities": [],
+            "technologyThemes": [],
+            "possibleDirectionalPressure": "negative",
+            "sourceArticleIds": [
+              "currents_42a46915-a078-5a43-805c-0fef7eeb6aa7"
+            ],
+            "sourceRelatedTickers": [
+              "MCD"
+            ],
+            "sourceUrl": "https://www.marketbeat.com/instant-alerts/filing-livforsakringsbolaget-skandia-omsesidigt-has-126-million-stock-position-in-mcdonalds-corporation-mcd-2026-06-05/",
+            "uncertaintyNotes": [],
+            "publishedAt": "2026-06-05 10:38:46 +0000",
+            "impactPath": [
+              "MCD"
+            ],
+            "reasonForRouting": "Directly tagged in news source for ticker MCD."
+          }
+        ],
         "crossImpactEvents": [],
         "suppressedDuplicateCount": 0
       },
       "SBUX": {
         "ticker": "SBUX",
-        "directEvents": [],
+        "directEvents": [
+          {
+            "eventId": "evt_currents_9c6c01f1-0a55-540a-a3d0-2cacd0fa73fc",
+            "catalystId": "cat_SBUX_1780657851_5",
+            "eventType": "market_attention",
+            "relationshipType": "direct",
+            "headline": "AI Is Wreaking Havoc at Starbucks and Pizza Hut. Social Media Is Having a Field Day",
+            "sourceName": "Fast Company",
+            "eventSummary": "Starbucks has retired an AI inventory tool following frequent operational errors.",
+            "hardFacts": [
+              "Starbucks retired an AI inventory tool",
+              "Tool was retired due to frequent mistakes"
+            ],
+            "hardFactsTimed": [
+              {
+                "fact": "Starbucks retired an AI inventory tool",
+                "publishedAt": "2026-06-05 09:30:00 +0000"
+              },
+              {
+                "fact": "Tool was retired due to frequent mistakes",
+                "publishedAt": "2026-06-05 09:30:00 +0000"
+              }
+            ],
+            "mentionedTickers": [
+              "SBUX"
+            ],
+            "entities": [
+              "Starbucks",
+              "Pizza Hut"
+            ],
+            "eventTags": [
+              "AI",
+              "operational failure"
+            ],
+            "regions": [
+              "Global"
+            ],
+            "sectors": [
+              "Consumer Discretionary"
+            ],
+            "commodities": [],
+            "technologyThemes": [
+              "Artificial Intelligence"
+            ],
+            "possibleDirectionalPressure": "negative",
+            "sourceArticleIds": [
+              "currents_9c6c01f1-0a55-540a-a3d0-2cacd0fa73fc"
+            ],
+            "sourceRelatedTickers": [
+              "SBUX"
+            ],
+            "sourceUrl": "https://www.inc.com/fast-company-2/ai-havoc-starbucks-pizza-hut-social-media/91356340",
+            "uncertaintyNotes": [],
+            "publishedAt": "2026-06-05 09:30:00 +0000",
+            "impactPath": [
+              "SBUX"
+            ],
+            "reasonForRouting": "Directly tagged in news source for ticker SBUX."
+          }
+        ],
         "crossImpactEvents": [],
         "suppressedDuplicateCount": 0
       },

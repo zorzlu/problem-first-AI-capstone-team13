@@ -30,7 +30,7 @@ Each run executes one of three compiled LangGraph workflows in `backend/iteratio
 Iteration 1
 Fetch & Filter News
         ↓
-Canonical Event Extraction  (LLM: gpt-4.1-nano / gemini-2.5-flash)
+Canonical Event Extraction  (LLM: gpt-4.1-nano / gemini-2.5-flash-lite)
         ↓
 Route Events to Tickers     (direct tag routing)
         ↓
@@ -47,7 +47,7 @@ Compliance Gate             (regex scrub of buy/sell language)
 Iteration 2
 Fetch & Filter News
         ↓
-Canonical Event Extraction  (LLM: gpt-4.1-nano / gemini-2.5-flash)
+Canonical Event Extraction  (LLM: gpt-4.1-nano / gemini-2.5-flash-lite)
         ↓
 Route Events to Tickers     (direct tag routing)
         ↓
@@ -64,7 +64,7 @@ Compliance Gate             (regex scrub of buy/sell language)
 Iteration 3
 Fetch & Filter News + Graph Query Expansion
         ↓
-Canonical Event Extraction  (LLM: gpt-4.1-nano / gemini-2.5-flash)
+Canonical Event Extraction  (LLM: gpt-4.1-nano / gemini-2.5-flash-lite)
         ↓
 Route Events to Tickers     (direct tag + exposure graph traversal)
         ↓
@@ -87,7 +87,7 @@ Every non-empty LLM synthesis is checked by a structured output safety judge bef
 
 ### Exposure-graph expansion (separate from the run pipeline)
 
-When you **add a ticker** to the watchlist, a background task maps that ticker's causal exposure (suppliers, customers, competitors, partners, regions, technology themes, commodities, macro/shipping risks) and merges the resulting nodes and edges into the exposure graph. It pulls known stock peers from Finnhub, then calls the LLM (`get_llm` — `gpt-4o-mini` / `gemini-2.5-flash`) to generate the surrounding graph. Exposure and sensitivity edges are directional from the cause/source node to the affected company or ticker. This runs **once per ticker on add** (not on every pipeline run), and can be re-triggered manually per ticker or rebuilt for the whole watchlist. With no LLM keys, only the bare ticker node is added. Per-ticker progress (`pending → running → done/skipped/failed`) is shown in the UI.
+When you **add a ticker** to the watchlist, a background task maps that ticker's causal exposure (suppliers, customers, competitors, partners, regions, technology themes, commodities, macro/shipping risks) and merges the resulting nodes and edges into the exposure graph. It pulls known stock peers from Finnhub, then calls the graph-expansion model route from `backend/llm.py` to generate the surrounding graph. Exposure and sensitivity edges are directional from the cause/source node to the affected company or ticker. This runs **once per ticker on add** (not on every pipeline run), and can be re-triggered manually per ticker or rebuilt for the whole watchlist. With no configured graph-expansion LLM, only the bare ticker node is added. Per-ticker progress (`pending -> running -> done/skipped/failed`) is shown in the UI.
 
 ---
 
@@ -95,7 +95,7 @@ When you **add a ticker** to the watchlist, a background task maps that ticker's
 
 | Tool | Minimum Version | Notes |
 |------|----------------|-------|
-| Python | 3.11 | Earlier versions are untested |
+| Python | 3.11.8 | Encoded in `.python-version`, `backend/.python-version`, `runtime.txt`, and `pyproject.toml` |
 | Node.js | 18.x | 20.x or later also works |
 | npm | 9.x | Comes with Node.js |
 
@@ -107,26 +107,56 @@ node --version
 npm --version
 ```
 
+The backend is intended to run from the isolated environment at `backend/.venv`. Tools that understand `.python-version` or `pyproject.toml` should select Python 3.11 automatically; otherwise create the venv with Python 3.11 explicitly.
+
 ---
 
 ## API Keys
 
-The application uses up to four external API keys. **All are optional** — see the table below for what each one unlocks.
+The application can use several optional service credentials. **All are optional** — see the table below for what each one unlocks.
 
 ### Which keys do you actually need?
 
 | Scenario | Keys required |
 |----------|--------------|
-| Run the three built-in replay scenarios with real LLM synthesis | One of: `GEMINI_API_KEY` **or** `OPENAI_API_KEY` |
+| Run the three built-in replay scenarios with real LLM synthesis | One configured chat provider route: Gemini, OpenAI, Anthropic, OpenAI-compatible, or local |
 | Run the three replay scenarios without any LLM (rules-based mock output) | None |
 | Pull live company news from Finnhub | `FINNHUB_API_KEY` |
 | Pull live cross-impact / geopolitical news from Currents | `CURRENTS_API_KEY` |
 
 ---
 
-### `GEMINI_API_KEY` — Google Gemini (default LLM)
+### LLM provider routing
 
-Used for: canonical event extraction (`gemini-2.5-flash`), per-ticker synthesis (`gemini-2.5-flash`), graph expansion, and the output safety judge. The deduplication ledger does **not** use this key — it embeds locally (see [Catalyst dedup embeddings](#catalyst-dedup-embeddings-local-no-api-key) below).
+Model/provider selection is centralized in `backend/llm.py`. LangGraph nodes request semantic roles (`extraction`, `synthesis`, `judge`, `graph_expansion`); they do not construct vendor clients directly.
+
+Default routes:
+- Extraction, synthesis, judge: Gemini primary, OpenAI fallback.
+- Graph expansion: OpenAI primary, Gemini fallback.
+
+Supported providers:
+- `openai`
+- `gemini`
+- `anthropic`
+- `openai_compatible`
+- `local`
+
+Override any step with:
+
+```env
+SYNTHESIS_LLM_PROVIDER=anthropic
+SYNTHESIS_LLM_MODEL=claude-sonnet-4-20250514
+
+GRAPH_EXPANSION_LLM_PROVIDER=local
+GRAPH_EXPANSION_LLM_MODEL=llama3.1
+LOCAL_LLM_BASE_URL=http://localhost:11434/v1
+```
+
+The legacy `LLM_PROVIDER` variable still works as a global provider override, but new configs should prefer explicit per-step variables. The deduplication ledger does **not** use remote LLM keys; it embeds locally (see [Catalyst dedup embeddings](#catalyst-dedup-embeddings-local-no-api-key) below).
+
+---
+
+### `GEMINI_API_KEY` — Google Gemini
 
 **How to get it:**
 1. Go to [Google AI Studio](https://aistudio.google.com/app/apikey).
@@ -137,11 +167,7 @@ The free tier is sufficient for all replay scenarios.
 
 ---
 
-### `OPENAI_API_KEY` — OpenAI (alternative LLM)
-
-Used for: canonical event extraction (`gpt-4.1-nano`), per-ticker synthesis (`gpt-4o-mini`), graph expansion, and the output safety judge. The deduplication ledger does **not** use this key — it embeds locally (see [Catalyst dedup embeddings](#catalyst-dedup-embeddings-local-no-api-key) below).
-
-Set `LLM_PROVIDER=openai` in your `.env` to activate this path. If both keys are set, `LLM_PROVIDER` controls which one is used. If `GEMINI_API_KEY` is absent but `OPENAI_API_KEY` is present, the app automatically falls back to OpenAI regardless of `LLM_PROVIDER`.
+### `OPENAI_API_KEY` — OpenAI
 
 **How to get it:**
 1. Go to [platform.openai.com/api-keys](https://platform.openai.com/api-keys).
@@ -152,11 +178,22 @@ You need a funded account (pay-as-you-go). Running all three replay scenarios co
 
 ---
 
+### `ANTHROPIC_API_KEY` — Anthropic Claude
+
+Use this when a step is configured with `*_LLM_PROVIDER=anthropic`.
+
+**How to get it:**
+1. Go to [console.anthropic.com](https://console.anthropic.com/).
+2. Create an API key.
+3. Set `ANTHROPIC_API_KEY` in `backend/.env`.
+
+---
+
 ### Catalyst dedup embeddings (local, no API key)
 
 The catalyst-memory ledger decides whether a fresh event is a duplicate, an update, or a new story. This is done with a **local embedding model** — there is no embedding API key and no per-call cost.
 
-- **Primary:** [`fastembed`](https://github.com/qdrant/fastembed) running `BAAI/bge-small-en-v1.5` (384 dimensions, ONNX, CPU). The model downloads once (~50 MB) on first run, then runs fully offline. Override with the `EMBEDDING_MODEL` env var.
+- **Primary:** [`fastembed`](https://github.com/qdrant/fastembed) running `BAAI/bge-small-en-v1.5` (384 dimensions, ONNX, CPU). The model downloads once (~50 MB) into `backend/state/fastembed_cache` by default, then runs fully offline. Override with the `EMBEDDING_MODEL` and `EMBEDDING_CACHE_DIR` env vars.
 - **Fallback:** if the model cannot be loaded, the system automatically uses a deterministic lexical token-frequency cosine matcher (no extra dependencies). Recall on heavily paraphrased duplicates is lower, but it is fully deterministic. The UI memory panel shows which engine is active.
 
 This replaced the earlier remote embedding API (`models/embedding-001` / `text-embedding-3-small`), which charged per call and was the main recurring cost in the dedup path.
@@ -203,8 +240,11 @@ cd problem-first-AI-capstone-team13
 **Create and activate a virtual environment:**
 
 ```bash
-# Create
+# Create with Python 3.11
 python -m venv backend/.venv
+
+# Windows alternative if multiple Python versions are installed
+py -3.11 -m venv backend/.venv
 
 # Activate — Windows PowerShell
 .\backend\.venv\Scripts\Activate.ps1
@@ -219,7 +259,7 @@ source backend/.venv/bin/activate
 **Install Python dependencies:**
 
 ```bash
-pip install -r backend/requirements.txt
+python -m pip install -r backend/requirements.txt
 ```
 
 **Create your `.env` file:**
@@ -235,7 +275,8 @@ cp backend/.env.example backend/.env
 Open `backend/.env` and fill in the keys you want to use:
 
 ```env
-# At minimum, add one LLM key if you want real synthesis.
+# Add one LLM provider credential if you want real hosted synthesis.
+# Local/OpenAI-compatible routes can be configured with the provider variables below.
 # Leave blank to run in no-key / mock mode.
 GEMINI_API_KEY=your_key_here
 
@@ -256,13 +297,15 @@ cd ..
 
 ## Running the Application
 
+The canonical way to run the app is from a terminal at the **repository root** using the isolated Python environment in `backend/.venv`. VS Code launch configs are convenience wrappers around these commands; they are not required.
+
 You need **two terminals** open from the repository root.
 
 **Terminal 1 — Backend:**
 
 ```bash
 # Activate the venv first if not already active (see Step 2 above)
-python -m backend.main
+python -m uvicorn backend.main:app --host 127.0.0.1 --port 8000
 ```
 
 The backend starts at `http://localhost:8000`.  
@@ -278,6 +321,18 @@ npm run dev
 Open your browser to `http://localhost:5173`.
 
 > The Vite dev server proxies all `/api/*` requests to `http://localhost:8000`, so both processes must be running.
+
+**Without activating the venv**, use the interpreter directly:
+
+```powershell
+# Windows PowerShell
+backend\.venv\Scripts\python.exe -m uvicorn backend.main:app --host 127.0.0.1 --port 8000
+```
+
+```bash
+# macOS / Linux
+backend/.venv/bin/python -m uvicorn backend.main:app --host 127.0.0.1 --port 8000
+```
 
 ---
 
@@ -310,7 +365,7 @@ The test suite verifies the three LangGraph workflows end-to-end, plus the imple
 
 ```bash
 # From the repository root, with the venv active
-python -m unittest backend/run_tests.py
+python -m backend.run_tests
 ```
 
 Or via the VS Code launch config `Backend: Run Unit Tests`.
@@ -378,10 +433,16 @@ All variables go in `backend/.env`. Copy `backend/.env.example` as a starting po
 
 | Variable | Default | Required | Description |
 |----------|---------|----------|-------------|
-| `GEMINI_API_KEY` | _(empty)_ | No | Google Gemini API key. Used for LLM extraction and synthesis (not embeddings — dedup embeds locally). Either this or `OPENAI_API_KEY` needed for real LLM output. |
-| `OPENAI_API_KEY` | _(empty)_ | No | OpenAI API key. Alternative to Gemini. Set `LLM_PROVIDER=openai` to activate. |
-| `LLM_PROVIDER` | `gemini` | No | `"gemini"` or `"openai"`. Selects which provider's models are used when both keys are set. |
+| `GEMINI_API_KEY` | _(empty)_ | No | Google Gemini API key. Default primary route for extraction, synthesis, and judge. |
+| `OPENAI_API_KEY` | _(empty)_ | No | OpenAI API key. Default primary route for graph expansion and fallback route for extraction, synthesis, and judge. |
+| `ANTHROPIC_API_KEY` | _(empty)_ | No | Anthropic Claude API key. Activate per step with `*_LLM_PROVIDER=anthropic`. |
+| `OPENAI_COMPATIBLE_BASE_URL` / `OPENAI_COMPATIBLE_API_KEY` / `OPENAI_COMPATIBLE_MODEL` | _(empty)_ | No | Hosted OpenAI-compatible chat endpoint. Activate per step with `*_LLM_PROVIDER=openai_compatible`. |
+| `LOCAL_LLM_BASE_URL` / `LOCAL_LLM_API_KEY` / `LOCAL_LLM_MODEL` | _(empty)_ | No | Local OpenAI-compatible chat endpoint such as Ollama `/v1`, LM Studio, or vLLM. Activate per step with `*_LLM_PROVIDER=local`. |
+| `EXTRACTION_LLM_PROVIDER`, `SYNTHESIS_LLM_PROVIDER`, `JUDGE_LLM_PROVIDER`, `GRAPH_EXPANSION_LLM_PROVIDER` | route defaults | No | Per-step provider override. Supported values: `openai`, `gemini`, `anthropic`, `openai_compatible`, `local`. |
+| `EXTRACTION_LLM_MODEL`, `SYNTHESIS_LLM_MODEL`, `JUDGE_LLM_MODEL`, `GRAPH_EXPANSION_LLM_MODEL` | provider defaults | No | Per-step model override. Required for `local` or `openai_compatible` unless the corresponding default model env var is set. |
+| `LLM_PROVIDER` | _(empty)_ | No | Optional legacy global provider override. New configs should prefer the per-step route map in `backend/llm.py`. |
 | `EMBEDDING_MODEL` | `BAAI/bge-small-en-v1.5` | No | Local fastembed model used for catalyst dedup. Runs offline on CPU at $0/call; downloads once (~50 MB). Lexical cosine fallback if it cannot load. |
+| `EMBEDDING_CACHE_DIR` | `backend/state/fastembed_cache` | No | Local cache directory for the fastembed ONNX model. Ignored by git. |
 | `FINNHUB_API_KEY` | _(empty)_ | No | Finnhub key for live company-specific news. Only used with `scenario_id=live`. |
 | `CURRENTS_API_KEY` | _(empty)_ | No | Currents API key for live cross-impact news. Only used with `scenario_id=live` and Iteration 3. |
 | `PHOENIX_PORT` | `6006` | No | Port for the Arize Phoenix tracing dashboard. |
@@ -396,7 +457,8 @@ All variables go in `backend/.env`. Copy `backend/.env.example` as a starting po
 problem-first-AI-capstone-team13/
 ├── backend/
 │   ├── main.py               # FastAPI app — routes and pipeline invocation
-│   ├── config.py             # Env vars, LLM factory functions, Phoenix init
+│   ├── config.py             # Env vars and Phoenix init
+│   ├── llm.py                # Provider registry and per-step LLM route resolution
 │   ├── graph_expansion.py    # LLM-driven exposure-graph expansion (runs on ticker-add)
 │   ├── ingestion.py          # Finnhub/Currents API clients + scenario replay
 │   ├── routing.py            # Exposure graph state + path traversal + scoring
@@ -436,7 +498,7 @@ problem-first-AI-capstone-team13/
 ## Troubleshooting
 
 ### The backend starts but synthesis output says "LLM unavailable"
-The LLM API key is either missing or exhausted. Check that `backend/.env` exists and contains a valid `GEMINI_API_KEY` or `OPENAI_API_KEY`. The app will still run and use mock synthesis in this case — the `Embeddings Memory Engine` panel in the UI will show which provider is active.
+The configured model route has no usable provider credentials, or the provider is exhausted/rate-limited. Check `backend/.env` and `/api/memory-status`; the response includes `llmSteps`, `llmProviders`, and the active local embedding engine. The app will still run and use mock synthesis when no synthesis LLM is configured.
 
 ### PowerShell blocks the venv activation script
 Run this once to allow local scripts:
@@ -448,7 +510,7 @@ Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
 Run the backend as a module from the **repository root**, not from inside the `backend/` directory:
 ```bash
 # Correct — from the repo root
-python -m backend.main
+python -m uvicorn backend.main:app --host 127.0.0.1 --port 8000
 
 # Wrong
 cd backend && python main.py

@@ -14,7 +14,7 @@ from backend.config import init_phoenix, PHOENIX_PORT
 from backend.routing import get_graph, add_graph_node, add_graph_edge, set_graph, reset_graph
 from backend.memory import get_ledger, clear_ledger
 import backend.memory as _memory_module
-from backend.config import GEMINI_API_KEY, OPENAI_API_KEY, LLM_PROVIDER
+from backend.llm import model_statuses, provider_statuses
 from backend.iterations import get_workflow
 from backend.persistence import load_watchlist, save_watchlist, load_graph, save_graph, load_run_results, save_run_results
 from backend.graph_expansion import (
@@ -311,16 +311,11 @@ def get_memory_status():
         dedup_model = "tf-cosine + jaccard"
         dedup_method = "lexical_cosine"
 
-    # LLM model reporting still depends on the configured provider.
-    if LLM_PROVIDER == "openai" and OPENAI_API_KEY:
-        llm_extraction_model = "gpt-4.1-nano"
-        llm_synthesis_model = "gpt-4o-mini"
-    elif GEMINI_API_KEY:
-        llm_extraction_model = "gemini-2.5-flash"
-        llm_synthesis_model = "gemini-2.5-flash"
-    else:
-        llm_extraction_model = "N/A"
-        llm_synthesis_model = "N/A"
+    llm_steps = model_statuses()
+    llm_extraction = llm_steps["extraction"]
+    llm_synthesis = llm_steps["synthesis"]
+    llm_judge = llm_steps["judge"]
+    llm_graph_expansion = llm_steps["graph_expansion"]
 
     total_entries = sum(len(entries) for entries in _memory_module._ledger_store.values())
     live_entries = []
@@ -332,6 +327,11 @@ def get_memory_status():
         "dedupProvider": dedup_provider,
         "dedupModel": dedup_model,
         "dedupMethod": dedup_method,
+        "embeddingProvider": "local_fastembed" if embedding_active else "local_lexical",
+        "embeddingRuntime": "local_cpu" if embedding_active else "local_python",
+        "embeddingModel": _memory_module._EMBEDDING_MODEL_NAME if embedding_active else "tf-cosine + jaccard",
+        "embeddingCacheDir": _memory_module._EMBEDDING_CACHE_DIR,
+        "embeddingLocation": "localhost",
         # isFallbackActive=True means the lexical fallback is in use (embedding model unavailable).
         "isFallbackActive": not embedding_active,
         "similarityThreshold": 0.75,
@@ -339,8 +339,16 @@ def get_memory_status():
         "ledgerTotalEntries": total_entries,
         "ledgerLiveEntries": len(live_entries),
         "ledgerEmbeddedEntries": len(embedded_entries),
-        "llmExtractionModel": llm_extraction_model,
-        "llmSynthesisModel": llm_synthesis_model,
+        "llmExtractionProvider": llm_extraction["provider"],
+        "llmExtractionModel": llm_extraction["model"],
+        "llmSynthesisProvider": llm_synthesis["provider"],
+        "llmSynthesisModel": llm_synthesis["model"],
+        "llmJudgeProvider": llm_judge["provider"],
+        "llmJudgeModel": llm_judge["model"],
+        "llmGraphExpansionProvider": llm_graph_expansion["provider"],
+        "llmGraphExpansionModel": llm_graph_expansion["model"],
+        "llmSteps": llm_steps,
+        "llmProviders": provider_statuses(),
     }
 
 def datetime_now():

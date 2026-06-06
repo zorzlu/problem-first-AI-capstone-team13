@@ -40,7 +40,7 @@ These need no runtime check; they are properties of the design and are the prima
 Notes:
 - **L3 is a guardrail, not an eval — so it runs on EVERY briefing, not a sample.** This is a financial-market product: a hallucinated or advice-laden briefing reaching a trader is a real harm, so the grounding/advice check is mandatory before release. Sampling 5% offline does not protect the 95% that shipped.
 - **Bounded ≠ the rejected pattern.** The design rejects an *unbounded judge→regenerate loop as an optimization*; a **bounded** (one-regeneration, then fail-safe degrade) **safety judge for a financial product** is a different category, justified by severity. The cap controls cost/latency.
-- **Narrow judge = reliable.** L3 checks only grounding + advice (not open-ended "quality"), which makes it trustworthy and mitigates "who judges the judge." It may use the stronger `get_llm` reasoning model. The deterministic compliance regex (L2) stays as a cheap parallel backstop; the offline reference set (§B) **calibrates the judge's own error rate**.
+- **Narrow judge = reliable.** L3 checks only grounding + advice (not open-ended "quality"), which makes it trustworthy and mitigates "who judges the judge." It uses the configured judge route (`get_judge_llm()`). The deterministic compliance regex (L2) stays as a cheap parallel backstop; the offline reference set (§B) **calibrates the judge's own error rate**.
 - **Grounding is the L3 judge's job — there is no deterministic provenance check.** A token-level numeric/entity check was considered and rejected: it is too noisy to act on (legitimate transforms like "28%"→"nearly a third", "2 million"→"2M", rounding, and model-generated numbers like `significance`/recency all cause false positives). The judge is the single grounding gate.
 
 ### A.3 What is deliberately NOT online
@@ -83,7 +83,7 @@ Watchlist + scenario
 ① Fetch & filter (Node 1 · deterministic)
    │
    ▼
-② Canonical extraction (Node 2 · LLM get_llm_fast)
+② Canonical extraction (Node 2 · LLM get_extraction_llm)
    │  IN  [G L0: untrusted-news framing — ONE global wrapper around the batch(impl) · Finnhub summary cleaning(impl)]
    │  GEN [G L1: constrained decoding → ExtractionResult]
    │  OUT [G L4: articleId reconciliation · retry-once → llm_failed]
@@ -96,11 +96,11 @@ Watchlist + scenario
 ⑤ Build ticker buckets (Node 5a · deterministic)
    │  [G struct: structured-bucket only (laundering) · empty buckets carried without LLM]
    ▼
-⑤b Parallel per-ticker workers (LangGraph Send · LLM get_llm)
+⑤b Parallel per-ticker workers (LangGraph Send · LLM get_synthesis_llm)
    │  IN  [G struct: one ticker bucket per branch · no other ticker context]
    │  GEN [G L1: constrained decoding → SynthesisOut · grounding prompt]
    ▼
-⑤b.1 OUTPUT SAFETY JUDGE (same worker · LLM judge · MANDATORY, every non-empty LLM briefing)   ← runtime guardrail
+⑤b.1 OUTPUT SAFETY JUDGE (same worker · LLM get_judge_llm · MANDATORY, every non-empty LLM briefing)   ← runtime guardrail
    │  [G L3: grounding + no-advice check → if fail, regenerate ×1 → re-judge
    │         → if still fail, FAIL-SAFE degrade (suppress / "unverified"); never ship unverified]
    │  [G L4: if judge call errors → degrade/suppress, never fail-open]
@@ -153,7 +153,7 @@ Same as C.1 with step ④ replaced by a real ledger check:
 ⑥ Compliance gate
 
 ── Side-flow (NOT in /api/run): graph expansion on ticker-add (background · LLM #3) ──
-   add ticker → Finnhub peers + existing nodes → LLM get_llm → GraphExpansionResult
+   add ticker → Finnhub peers + existing nodes → LLM get_graph_expansion_llm → GraphExpansionResult
    [G L1: constrained decoding]
    [G impl: referential integrity — edges only between known nodeIds · invalid edgeType dropped
             · confidence clamped 0–1 · node dedup/enrich · once-per-ticker unless force]

@@ -16,7 +16,7 @@ from typing import Dict, Any, List, Literal, Optional
 from pydantic import BaseModel, Field
 from langchain_core.messages import HumanMessage, SystemMessage
 
-from backend.config import GEMINI_API_KEY, OPENAI_API_KEY, get_llm
+from backend.llm import get_graph_expansion_llm, has_llm_for_step
 from backend.iterations.common import invoke_with_retry
 from backend.routing import get_graph, add_graph_node, add_graph_edge
 from backend.persistence import save_graph
@@ -322,7 +322,7 @@ def expand_graph_for_ticker(ticker: str, force: bool = False) -> Dict[str, Any]:
 
     # Demo/mock mode: no LLM available. Register the bare ticker node so cross-impact
     # routing has a valid target; richer links require API keys.
-    if not (GEMINI_API_KEY or OPENAI_API_KEY):
+    if not has_llm_for_step("graph_expansion"):
         bare_node = _bare_ticker_node(ticker)
         matched_node = find_matching_node(bare_node, existing_nodes)
         added_nodes = 1
@@ -380,7 +380,7 @@ def expand_graph_for_ticker(ticker: str, force: bool = False) -> Dict[str, Any]:
                 llm_span.set_attribute(OPENINFERENCE_SPAN_KIND, "LLM")
                 
                 # Tag with the LLM model name if available
-                base_llm = get_llm()
+                base_llm = get_graph_expansion_llm()
                 model_name = getattr(base_llm, "model_name", getattr(base_llm, "model", "unknown"))
                 llm_span.set_attribute("llm.model_name", model_name)
                 
@@ -395,7 +395,7 @@ def expand_graph_for_ticker(ticker: str, force: bool = False) -> Dict[str, Any]:
                 payload = result.model_dump()
                 llm_span.set_attribute(OUTPUT_VALUE, json.dumps(payload))
         else:
-            llm = get_llm().with_structured_output(GraphExpansionResult)
+            llm = get_graph_expansion_llm().with_structured_output(GraphExpansionResult)
             result: GraphExpansionResult = invoke_with_retry(
                 llm,
                 [SystemMessage(content=SYSTEM_PROMPT), HumanMessage(content=user_prompt)],

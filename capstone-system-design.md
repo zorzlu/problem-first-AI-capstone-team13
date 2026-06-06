@@ -79,13 +79,13 @@ News is unstructured language; the LLM normalizes it into structured events and 
 | News fetching | API clients + manual UI trigger | Predictable, auditable |
 | Source/timestamp filters | Code | Objective rules |
 | Exposure query generation | Code from graph | Bounded broad-news search |
-| Batch canonical event extraction | **LLM (`get_llm_fast`)** | Language understanding; one batched call |
+| Batch canonical event extraction | **LLM route (`get_extraction_llm`)** | Language understanding; one batched call |
 | Direct ticker routing | Code | Source tags + watchlist |
 | Indirect impact routing | Exposure graph + code | Avoids LLM over-connection |
 | Duplicate/update decision | Catalyst ledger + local embeddings | Determinism + evalability, $0/call |
-| Per-ticker synthesis | **LLM (`get_llm`) in LangGraph `Send` workers** | Final market-impact explanation, parallelized per ticker |
-| Output safety judge | **LLM (`get_llm`) in the same per-ticker worker** | Runtime grounding, advice, and path-validity gate before fan-in |
-| Graph expansion (setup) | **LLM (`get_llm`) + Finnhub peers** | Discover exposure surface on ticker-add |
+| Per-ticker synthesis | **LLM route (`get_synthesis_llm`) in LangGraph `Send` workers** | Final market-impact explanation, parallelized per ticker |
+| Output safety judge | **LLM route (`get_judge_llm`) in the same per-ticker worker** | Runtime grounding, advice, and path-validity gate before fan-in |
+| Graph expansion (setup) | **LLM route (`get_graph_expansion_llm`) + Finnhub peers** | Discover exposure surface on ticker-add |
 | Compliance | Code (regex) | Reduce advice/hallucination risk |
 
 ### 1.5 Constraints
@@ -130,7 +130,7 @@ The exposure graph is the control layer for indirect reasoning. It answers: *if 
 
 **LLM-driven expansion on ticker-add** (`backend/graph_expansion.py`): when a ticker is added to the watchlist, a **background task** (`process_ticker_expansion`) maps that ticker's exposure surface and **merges the result directly into the live graph**. Steps:
 1. Fetch known stock peers via Finnhub `/stock/peers` (`fetch_finnhub_peers`).
-2. Pass the peers + a compacted view of existing graph nodes to the LLM (`get_llm`, structured output `GraphExpansionResult`).
+2. Pass the peers + a compacted view of existing graph nodes to the graph-expansion LLM route (`get_graph_expansion_llm`, structured output `GraphExpansionResult`).
 3. Validate, deduplicate (`find_matching_node` by ticker/name/alias, enriching matched nodes in place), and enforce referential integrity (every edge endpoint must resolve to a known/accepted nodeId; invalid edge types dropped; confidence clamped; LLM edges stamped `sourceType: "llm_generated"`, `lastReviewedAt`).
 4. Merge accepted nodes/edges and **persist** the graph to disk.
    The expansion prompt also treats exposure/sensitivity edges as cause → affected
@@ -186,23 +186,23 @@ Edge fields: `fromNodeId`, `toNodeId`, `edgeType`, `strength` (`high|medium|low`
 ### 4.1 Selection principles
 Prioritize faithfulness (stay grounded in article + path), latency (5–10 min loop), cost (LLM only after cheap filters/routing), and structured-output reliability (grammar-constrained decoding).
 
-### 4.2 Model roles (as implemented, `backend/config.py:42-80`)
+### 4.2 Model roles (as implemented, `backend/llm.py`)
 
-| Role | Factory | Model (Gemini default / OpenAI) | Temp |
-|---|---|---|---|
-| Canonical event extraction | `get_llm_fast()` | `gemini-2.5-flash` / `gpt-4.1-nano` | 0.0 |
-| Per-ticker synthesis | `get_llm()` | `gemini-2.5-flash` / `gpt-4o-mini` | 0.0 |
-| Graph expansion | `get_llm()` | `gemini-2.5-flash` / `gpt-4o-mini` | 0.0 |
-| Output safety judge | `get_llm()` | `gemini-2.5-flash` / `gpt-4o-mini` | 0.0 |
-| Catalyst-dedup embeddings | local `fastembed` | `BAAI/bge-small-en-v1.5` (384-d, ONNX/CPU) | — |
+| Role | Resolver | Default primary route | Default fallback route | Temp |
+|---|---|---|---|---|
+| Canonical event extraction | `get_extraction_llm()` | Gemini `gemini-2.5-flash-lite` | OpenAI `gpt-4.1-nano` | 0.0 |
+| Per-ticker synthesis | `get_synthesis_llm()` | Gemini `gemini-2.5-flash-lite` | OpenAI `gpt-4o-mini` | 0.0 |
+| Output safety judge | `get_judge_llm()` | Gemini `gemini-2.5-flash-lite` | OpenAI `gpt-4o-mini` | 0.0 |
+| Graph expansion | `get_graph_expansion_llm()` | OpenAI `gpt-5-mini` | Gemini `gemini-2.5-flash-lite` | 0.0 |
+| Catalyst-dedup embeddings | local `fastembed` | `BAAI/bge-small-en-v1.5` (384-d, ONNX/CPU) | lexical similarity fallback | - |
 
-Provider selected by `LLM_PROVIDER` (default `gemini`); if Gemini key is absent but OpenAI key present, the factories auto-fall back to OpenAI. All three LLM call sites bind a Pydantic schema via `.with_structured_output(...)`, so the decoder is grammar-constrained to valid JSON — there is no manual JSON repair in the live path.
+Provider and model selection is centralized in `backend/llm.py`, not inside individual LangGraph nodes. Each node asks for a semantic route (`extraction`, `synthesis`, `judge`, or `graph_expansion`), and that route can be overridden with per-step environment variables such as `SYNTHESIS_LLM_PROVIDER` and `SYNTHESIS_LLM_MODEL`. Supported chat providers are OpenAI, Gemini, Anthropic, hosted OpenAI-compatible endpoints, and local OpenAI-compatible servers such as Ollama, LM Studio, or vLLM. The legacy `LLM_PROVIDER` variable still works as a global override, but explicit per-step routes are the preferred configuration. All live LLM call sites bind a Pydantic schema via `.with_structured_output(...)`, so the decoder is grammar-constrained to valid JSON - there is no manual JSON repair in the live path.
 
 ### 4.2.1 Why a local embedding model for catalyst dedup
 The ledger only needs near-duplicate clustering of short, already-LLM-normalized summaries within a single `(ticker, eventType)` group under a 1-day TTL. That is achievable with a **small local model**, so the system embeds locally at **$0/call** with no network dependency:
-- **Primary:** `fastembed` ONNX `BAAI/bge-small-en-v1.5` (384-d), downloaded once (~50 MB), runs offline on CPU (`backend/memory.py:53-101`). Catches paraphrased duplicates a lexical match misses.
+- **Primary:** `fastembed` ONNX `BAAI/bge-small-en-v1.5` (384-d), downloaded once (~50 MB) into `backend/state/fastembed_cache` by default, runs offline on CPU, and can use a custom `EMBEDDING_CACHE_DIR` (`backend/memory.py`). Catches paraphrased duplicates a lexical match misses.
 - **Fallback:** deterministic lexical token-frequency cosine / Jaccard + containment, used automatically if the model can't load (`backend/memory.py:153-227`). Fully reproducible/auditable.
-The active engine is reported at `GET /api/memory-status`. (This replaced an earlier remote embedding API that charged per call.)
+The active engine, model name, runtime provider, and cache directory are reported at `GET /api/memory-status`. (This replaced an earlier remote embedding API that charged per call.)
 
 ### 4.3 Why not fine-tuning / autonomous agents
 Fine-tuning adds lifecycle complexity before the architecture is proven. Autonomous planning is rejected because the process is a fixed workflow graph (`fetch → extract → route → memory → synthesize → compliance`); a planner would add latency, cost, and nondeterminism with no benefit for an observability- and control-sensitive financial product.
@@ -223,7 +223,7 @@ Each iteration is a compiled LangGraph `StateGraph` selected by `backend/iterati
 Iteration 3 first calls `get_cross_impact_queries` to expand keywords + peer tickers, then `get_news_payload`. Output: `articles` + `ingestion_metadata`. No LLM.
 
 ### Node 2 — Canonical Event Extraction (`canonical_event_extraction_node`, `:304-468`) — **LLM #1**
-- **Model:** `get_llm_fast()`, structured output `ExtractionResult` = `{events: List[CanonicalEventOut]}` (`:30-49`).
+- **Model:** `get_extraction_llm()`, structured output `ExtractionResult` = `{events: List[CanonicalEventOut]}` (`:30-49`).
 - **`CanonicalEventOut` fields:** `articleId`, `eventType` (12-value Literal: earnings, guidance, supply_chain, regulatory, legal, macro, geopolitical, commodity, sector, private_company_technology, natural_disaster, other), `eventSummary`, `hardFacts[]`, `entities[]`, `eventTags[]`, `regions[]`, `sectors[]`, `commodities[]`, `technologyThemes[]`, `possibleDirectionalPressure` (positive/negative/mixed/unclear), `uncertaintyNotes[]`, `evidence[]`. *(There is no `materiality` or `directly_mentions_ticker` field.)*
 - **Input:** one batched call over all articles; each article block carries id, source, `PUBLISHED: <ts> (X mins ago)`, URL, headline, cleaned summary, and source-tagged related tickers (`:396-416`). `clean_summary` strips Finnhub trailing-headline repetition (`:386-393`).
 - **Output:** events matched back to articles by `articleId`, decorated with `eventId`, `sourceArticleIds`, `relatedTickers`, `sourceUrl`, `sourceHeadline`, `publishedAt`.
@@ -244,7 +244,7 @@ Iteration 1 stamps all `new`. Iterations 2/3 call `check_ledger_decision` → `n
 ### Node 5b — Parallel Per-Ticker Synthesis Worker (`dispatch_ticker_synthesis` + `synthesize_one_ticker_node`, `backend/iterations/common.py:1034-1412`) — **LLM #2 + L3 judge**
 - `dispatch_ticker_synthesis` returns LangGraph `Send("synthesize_one_ticker", ...)` calls, one per ticker bucket (`backend/iterations/common.py:1034-1048`). Each branch receives `active_synthesis_ticker` and `active_synthesis_bucket`.
 - **Recency annotation:** each worker annotates event-level `minutesAgo` and rewrites hard facts to `[{fact, minutesAgo}]` before calling the model (`backend/iterations/common.py:1051-1130`).
-- **Model:** `get_llm()` per ticker, structured output `SynthesisOut`: `summaryHeadline`, `situationSummary`, `mainCatalysts[]`, `overallPossibleInfluence`, `confidence`, `uncertainties[]`, `watchItems[]`. Each `MainCatalystOut`: `eventId`, `label`, `relationshipType`, `eventType`, `possibleInfluence`, `confidence`, `recency` (breaking/recent/background), `impactPath[]`, **`significance` 1-10**.
+- **Model:** `get_synthesis_llm()` per ticker, structured output `SynthesisOut`: `summaryHeadline`, `situationSummary`, `mainCatalysts[]`, `overallPossibleInfluence`, `confidence`, `uncertainties[]`, `watchItems[]`. Each `MainCatalystOut`: `eventId`, `label`, `relationshipType`, `eventType`, `possibleInfluence`, `confidence`, `recency` (breaking/recent/background), `impactPath[]`, **`significance` 1-10**.
 - **Prompt rules:** weight by recency (<30 min HIGH, 30-90 MEDIUM, >90 BACKGROUND), per-fact recency, strong vs weak path handling, no buy/sell advice (`backend/iterations/common.py:765-805`).
 - **Output safety judge:** every non-empty LLM output is judged in the same worker; failures regenerate once, then degrade if still failing or if the judge errors (`backend/iterations/common.py:1268-1379`).
 - **No-key mock:** the worker returns rules-based synthesis and marks the judge as skipped in `guardrailMetadata`.
@@ -394,7 +394,7 @@ These are properties of the design, not toggles, and are the **primary defense (
 
 Notes:
 - **L3 is a guardrail, not an eval — it runs on every briefing, not a sample.** This is a financial-market product: a hallucinated or advice-laden briefing reaching a trader is a real harm, so the grounding/advice check is mandatory before release. Sampling 5% offline does not protect the 95% that shipped.
-- **Bounded ≠ the rejected pattern.** The architecture rejects an *unbounded judge→regenerate loop as an optimization*; a **bounded** (one regeneration, then fail-safe degrade) **safety judge for a financial product** is a different category, justified by severity. The cap controls cost/latency, and L3 may use the stronger `get_llm` reasoning model.
+- **Bounded ≠ the rejected pattern.** The architecture rejects an *unbounded judge→regenerate loop as an optimization*; a **bounded** (one regeneration, then fail-safe degrade) **safety judge for a financial product** is a different category, justified by severity. The cap controls cost/latency, and L3 uses the configured judge route (`get_judge_llm()`).
 - **Narrow judge = reliable.** L3 checks only grounding + advice (not open-ended quality), which makes it trustworthy and mitigates "who judges the judge." The deterministic compliance regex (L2) stays as a cheap parallel backstop; the offline reference set (§10.2) calibrates the judge's own error rate.
 - **No deterministic grounding check.** A token-level numeric/entity provenance check was considered and rejected as too noisy to act on (legitimate transforms like "28%"→"nearly a third", "2 million"→"2M", rounding, and model-generated numbers like `significance`/recency cause false positives). Grounding is the L3 judge's job — it is the single gate.
 - **Not online:** no semantic compliance judge *replacing* the regex (regex stays as a backstop alongside L3); no *unbounded* judge loop; no dedicated injection classifier (§11.1 already caps the threat).
@@ -426,7 +426,8 @@ Cost drivers: number of fetched articles, Currents queries, the single batched e
 |---|---|
 | FastAPI app, `/api/run`, ledger rollback, startup load | `backend/main.py` |
 | Iteration-specific LangGraph workflows, extraction LLM call, `Send` fan-out/fan-in synthesis workers, structured-output schemas, compliance gate | `backend/iterations/common.py`, `backend/iterations/iter1.py`, `backend/iterations/iter2.py`, `backend/iterations/iter3.py` |
-| LLM/Phoenix config, `get_llm` / `get_llm_fast` | `backend/config.py` |
+| LLM provider registry and route resolvers | `backend/llm.py` |
+| Phoenix tracing and environment config | `backend/config.py` |
 | Finnhub/Currents clients, scenario replay, freshness filter | `backend/ingestion.py` |
 | Exposure graph store, query expansion, path traversal + scoring | `backend/routing.py` |
 | Catalyst ledger, local embeddings + lexical fallback, decision logic | `backend/memory.py` |

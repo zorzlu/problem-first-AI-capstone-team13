@@ -27,7 +27,7 @@
       "name": "Backend: Run Unit Tests",
       "type": "debugpy",
       "request": "launch",
-      "program": "${workspaceFolder}/backend/run_tests.py",
+      "module": "backend.run_tests",
       "windows": {
         "python": "${workspaceFolder}/backend/.venv/Scripts/python.exe"
       },

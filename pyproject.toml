@@ -1,0 +1,9 @@
+[project]
+name = "problem-first-ai-capstone-team13"
+version = "0.1.0"
+requires-python = ">=3.11,<3.12"
+dynamic = ["dependencies"]
+
+[tool.pyright]
+venvPath = "backend"
+venv = ".venv"

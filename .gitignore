@@ -39,3 +39,6 @@ backend/.env
 # Arize Phoenix local database & traces
 .phoenix/
 phoenix.db
+backend/state/*.log
+backend/state/fastembed_cache/
+backend/state/*.log

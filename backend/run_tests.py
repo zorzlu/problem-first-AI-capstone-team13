@@ -300,16 +300,16 @@ class TestWorkflow(unittest.TestCase):
 
         raise ValueError(f"Mock got unexpected message patterns: {messages}")
 
-    @patch('backend.iterations.common.get_llm_fast')
-    @patch('backend.iterations.common.get_llm')
-    def test_iteration_1_direct_news(self, mock_get_llm, mock_get_llm_fast):
+    @patch('backend.iterations.common.get_extraction_llm')
+    @patch('backend.iterations.common.get_judge_llm')
+    @patch('backend.iterations.common.get_synthesis_llm')
+    def test_iteration_1_direct_news(self, mock_synthesis_llm, mock_judge_llm, mock_extraction_llm):
         """Test Iteration 1 direct company news path without duplicates."""
         mock_llm = MagicMock()
         mock_llm.with_structured_output = self.mock_structured
-        mock_get_llm.return_value = mock_llm
-        # Extraction (Node 2) uses get_llm_fast; mock it too so the test is deterministic
-        # and does not hit the real LLM API.
-        mock_get_llm_fast.return_value = mock_llm
+        mock_synthesis_llm.return_value = mock_llm
+        mock_judge_llm.return_value = mock_llm
+        mock_extraction_llm.return_value = mock_llm
 
         initial_state = {
             "iteration": 1,
@@ -344,14 +344,16 @@ class TestWorkflow(unittest.TestCase):
         self.assertEqual(msft_direct["impactPath"], ["MSFT"])
         self.assertIn("Directly tagged", msft_direct["reasonForRouting"])
 
-    @patch('backend.iterations.common.get_llm_fast')
-    @patch('backend.iterations.common.get_llm')
-    def test_iteration_1_preserves_direct_source_tag_for_non_named_company(self, mock_get_llm, mock_get_llm_fast):
+    @patch('backend.iterations.common.get_extraction_llm')
+    @patch('backend.iterations.common.get_judge_llm')
+    @patch('backend.iterations.common.get_synthesis_llm')
+    def test_iteration_1_preserves_direct_source_tag_for_non_named_company(self, mock_synthesis_llm, mock_judge_llm, mock_extraction_llm):
         """Source ticker tags are routing evidence even when the headline names another company."""
         mock_llm = MagicMock()
         mock_llm.with_structured_output = self.mock_structured
-        mock_get_llm.return_value = mock_llm
-        mock_get_llm_fast.return_value = mock_llm
+        mock_synthesis_llm.return_value = mock_llm
+        mock_judge_llm.return_value = mock_llm
+        mock_extraction_llm.return_value = mock_llm
 
         article = {
             "articleId": "dell_msft_contract_001",
@@ -393,14 +395,16 @@ class TestWorkflow(unittest.TestCase):
         self.assertEqual(msft_events[0]["impactPath"], ["MSFT"])
         self.assertIn("Directly tagged", msft_events[0]["reasonForRouting"])
 
-    @patch('backend.iterations.common.get_llm_fast')
-    @patch('backend.iterations.common.get_llm')
-    def test_iteration_3_routes_untagged_article_by_mentioned_ticker(self, mock_get_llm, mock_get_llm_fast):
+    @patch('backend.iterations.common.get_extraction_llm')
+    @patch('backend.iterations.common.get_judge_llm')
+    @patch('backend.iterations.common.get_synthesis_llm')
+    def test_iteration_3_routes_untagged_article_by_mentioned_ticker(self, mock_synthesis_llm, mock_judge_llm, mock_extraction_llm):
         """Currents stories with no source ticker should still route when extraction maps a watched ticker."""
         mock_llm = MagicMock()
         mock_llm.with_structured_output = self.mock_structured
-        mock_get_llm.return_value = mock_llm
-        mock_get_llm_fast.return_value = mock_llm
+        mock_synthesis_llm.return_value = mock_llm
+        mock_judge_llm.return_value = mock_llm
+        mock_extraction_llm.return_value = mock_llm
 
         article = {
             "articleId": "currents_8532d38f-c8bd-55c3-ac51-dd3860f1a287",
@@ -443,14 +447,16 @@ class TestWorkflow(unittest.TestCase):
         self.assertEqual(nvda_events[0]["entities"], ["Nvidia", "Reflection AI"])
         self.assertEqual(nvda_events[0]["sourceName"], "TechRepublic")
 
-    @patch('backend.iterations.common.get_llm_fast')
-    @patch('backend.iterations.common.get_llm')
-    def test_iteration_2_ledger_duplicates(self, mock_get_llm, mock_get_llm_fast):
+    @patch('backend.iterations.common.get_extraction_llm')
+    @patch('backend.iterations.common.get_judge_llm')
+    @patch('backend.iterations.common.get_synthesis_llm')
+    def test_iteration_2_ledger_duplicates(self, mock_synthesis_llm, mock_judge_llm, mock_extraction_llm):
         """Test Iteration 2 catalyst memory deduplication and update detection."""
         mock_llm = MagicMock()
         mock_llm.with_structured_output = self.mock_structured
-        mock_get_llm.return_value = mock_llm
-        mock_get_llm_fast.return_value = mock_llm
+        mock_synthesis_llm.return_value = mock_llm
+        mock_judge_llm.return_value = mock_llm
+        mock_extraction_llm.return_value = mock_llm
 
         initial_state = {
             "iteration": 2,
@@ -481,14 +487,16 @@ class TestWorkflow(unittest.TestCase):
         self.assertTrue(final_state["ticker_buckets"]["AAPL"]["directEvents"])
         self.assertIn("sourceRelatedTickers", final_state["ticker_buckets"]["AAPL"]["directEvents"][0])
 
-    @patch('backend.iterations.common.get_llm_fast')
-    @patch('backend.iterations.common.get_llm')
-    def test_iteration_3_cross_impact_routing(self, mock_get_llm, mock_get_llm_fast):
+    @patch('backend.iterations.common.get_extraction_llm')
+    @patch('backend.iterations.common.get_judge_llm')
+    @patch('backend.iterations.common.get_synthesis_llm')
+    def test_iteration_3_cross_impact_routing(self, mock_synthesis_llm, mock_judge_llm, mock_extraction_llm):
         """Test Iteration 3 cross impact graph routing for untickered events."""
         mock_llm = MagicMock()
         mock_llm.with_structured_output = self.mock_structured
-        mock_get_llm.return_value = mock_llm
-        mock_get_llm_fast.return_value = mock_llm
+        mock_synthesis_llm.return_value = mock_llm
+        mock_judge_llm.return_value = mock_llm
+        mock_extraction_llm.return_value = mock_llm
 
         initial_state = {
             "iteration": 3,
@@ -795,13 +803,15 @@ class TestGuardrails(unittest.TestCase):
 
         raise ValueError(f"Mock got unexpected message patterns: {messages}")
 
-    @patch('backend.iterations.common.get_llm_fast')
-    @patch('backend.iterations.common.get_llm')
-    def test_prompt_injection_ignored(self, mock_get_llm, mock_get_llm_fast):
+    @patch('backend.iterations.common.get_extraction_llm')
+    @patch('backend.iterations.common.get_judge_llm')
+    @patch('backend.iterations.common.get_synthesis_llm')
+    def test_prompt_injection_ignored(self, mock_synthesis_llm, mock_judge_llm, mock_extraction_llm):
         mock_llm = MagicMock()
         mock_llm.with_structured_output = self.mock_structured
-        mock_get_llm.return_value = mock_llm
-        mock_get_llm_fast.return_value = mock_llm
+        mock_synthesis_llm.return_value = mock_llm
+        mock_judge_llm.return_value = mock_llm
+        mock_extraction_llm.return_value = mock_llm
 
         self.mock_judge_passes = True
         
@@ -842,13 +852,15 @@ class TestGuardrails(unittest.TestCase):
         self.assertNotIn("buy NVDA", syn["summaryHeadline"])
         self.assertEqual(syn["guardrailMetadata"]["judgeStatus"], "passed")
 
-    @patch('backend.iterations.common.get_llm_fast')
-    @patch('backend.iterations.common.get_llm')
-    def test_judge_pass_path(self, mock_get_llm, mock_get_llm_fast):
+    @patch('backend.iterations.common.get_extraction_llm')
+    @patch('backend.iterations.common.get_judge_llm')
+    @patch('backend.iterations.common.get_synthesis_llm')
+    def test_judge_pass_path(self, mock_synthesis_llm, mock_judge_llm, mock_extraction_llm):
         mock_llm = MagicMock()
         mock_llm.with_structured_output = self.mock_structured
-        mock_get_llm.return_value = mock_llm
-        mock_get_llm_fast.return_value = mock_llm
+        mock_synthesis_llm.return_value = mock_llm
+        mock_judge_llm.return_value = mock_llm
+        mock_extraction_llm.return_value = mock_llm
 
         self.mock_judge_passes = True
 
@@ -874,13 +886,15 @@ class TestGuardrails(unittest.TestCase):
         self.assertFalse(syn["guardrailMetadata"]["regenerated"])
         self.assertFalse(syn["guardrailMetadata"]["degraded"])
 
-    @patch('backend.iterations.common.get_llm_fast')
-    @patch('backend.iterations.common.get_llm')
-    def test_judge_fail_then_regenerate_pass(self, mock_get_llm, mock_get_llm_fast):
+    @patch('backend.iterations.common.get_extraction_llm')
+    @patch('backend.iterations.common.get_judge_llm')
+    @patch('backend.iterations.common.get_synthesis_llm')
+    def test_judge_fail_then_regenerate_pass(self, mock_synthesis_llm, mock_judge_llm, mock_extraction_llm):
         mock_llm = MagicMock()
         mock_llm.with_structured_output = self.mock_structured
-        mock_get_llm.return_value = mock_llm
-        mock_get_llm_fast.return_value = mock_llm
+        mock_synthesis_llm.return_value = mock_llm
+        mock_judge_llm.return_value = mock_llm
+        mock_extraction_llm.return_value = mock_llm
 
         self.mock_judge_attempts_decisions = [False, True]
         self.mock_judge_attempts_made = 0
@@ -908,13 +922,15 @@ class TestGuardrails(unittest.TestCase):
         self.assertFalse(syn["guardrailMetadata"]["degraded"])
         self.assertIn("(Regenerated)", syn["summaryHeadline"])
 
-    @patch('backend.iterations.common.get_llm_fast')
-    @patch('backend.iterations.common.get_llm')
-    def test_judge_fail_twice_degrades(self, mock_get_llm, mock_get_llm_fast):
+    @patch('backend.iterations.common.get_extraction_llm')
+    @patch('backend.iterations.common.get_judge_llm')
+    @patch('backend.iterations.common.get_synthesis_llm')
+    def test_judge_fail_twice_degrades(self, mock_synthesis_llm, mock_judge_llm, mock_extraction_llm):
         mock_llm = MagicMock()
         mock_llm.with_structured_output = self.mock_structured
-        mock_get_llm.return_value = mock_llm
-        mock_get_llm_fast.return_value = mock_llm
+        mock_synthesis_llm.return_value = mock_llm
+        mock_judge_llm.return_value = mock_llm
+        mock_extraction_llm.return_value = mock_llm
 
         self.mock_judge_attempts_decisions = [False, False]
         self.mock_judge_attempts_made = 0
@@ -942,13 +958,15 @@ class TestGuardrails(unittest.TestCase):
         self.assertTrue(syn["guardrailMetadata"]["degraded"])
         self.assertEqual(syn["summaryHeadline"], "Briefing suppressed pending verification")
 
-    @patch('backend.iterations.common.get_llm_fast')
-    @patch('backend.iterations.common.get_llm')
-    def test_judge_exception_degrades(self, mock_get_llm, mock_get_llm_fast):
+    @patch('backend.iterations.common.get_extraction_llm')
+    @patch('backend.iterations.common.get_judge_llm')
+    @patch('backend.iterations.common.get_synthesis_llm')
+    def test_judge_exception_degrades(self, mock_synthesis_llm, mock_judge_llm, mock_extraction_llm):
         mock_llm = MagicMock()
         mock_llm.with_structured_output = self.mock_structured
-        mock_get_llm.return_value = mock_llm
-        mock_get_llm_fast.return_value = mock_llm
+        mock_synthesis_llm.return_value = mock_llm
+        mock_judge_llm.return_value = mock_llm
+        mock_extraction_llm.return_value = mock_llm
 
         self.mock_judge_exception = True
 
@@ -975,14 +993,81 @@ class TestGuardrails(unittest.TestCase):
         self.assertEqual(syn["summaryHeadline"], "Briefing suppressed pending verification")
 
 
+class TestModelSelection(unittest.TestCase):
+    def test_gemini_step_falls_back_to_openai_with_openai_model(self):
+        from backend import llm
+
+        with patch.dict("os.environ", {}, clear=True), \
+             patch("backend.llm.GEMINI_API_KEY", ""), \
+             patch("backend.llm.OPENAI_API_KEY", "sk-test"), \
+             patch("backend.llm.ANTHROPIC_API_KEY", ""), \
+             patch("backend.llm.OPENAI_COMPATIBLE_BASE_URL", ""), \
+             patch("backend.llm.LOCAL_LLM_BASE_URL", ""):
+            spec = llm.resolve_model_spec("extraction")
+
+        self.assertEqual(spec.provider, "openai")
+        self.assertEqual(spec.model_id, "gpt-4.1-nano")
+
+    def test_graph_expansion_falls_back_to_gemini_with_gemini_model(self):
+        from backend import llm
+
+        with patch.dict("os.environ", {}, clear=True), \
+             patch("backend.llm.GEMINI_API_KEY", "gemini-key"), \
+             patch("backend.llm.OPENAI_API_KEY", ""), \
+             patch("backend.llm.ANTHROPIC_API_KEY", ""), \
+             patch("backend.llm.OPENAI_COMPATIBLE_BASE_URL", ""), \
+             patch("backend.llm.LOCAL_LLM_BASE_URL", ""):
+            spec = llm.resolve_model_spec("graph_expansion")
+
+        self.assertEqual(spec.provider, "gemini")
+        self.assertEqual(spec.model_id, "gemini-2.5-flash-lite")
+
+    def test_step_override_supports_claude(self):
+        from backend import llm
+
+        with patch.dict("os.environ", {
+            "SYNTHESIS_LLM_PROVIDER": "anthropic",
+            "SYNTHESIS_LLM_MODEL": "claude-sonnet-4-20250514",
+        }, clear=True), \
+             patch("backend.llm.ANTHROPIC_API_KEY", "anthropic-key"):
+            spec = llm.resolve_model_spec("synthesis")
+
+        self.assertEqual(spec.provider, "anthropic")
+        self.assertEqual(spec.model_id, "claude-sonnet-4-20250514")
+
+    def test_step_override_supports_local_openai_compatible_endpoint(self):
+        from backend import llm
+
+        with patch.dict("os.environ", {
+            "GRAPH_EXPANSION_LLM_PROVIDER": "local",
+            "GRAPH_EXPANSION_LLM_MODEL": "llama3.1",
+        }, clear=True), \
+             patch("backend.llm.LOCAL_LLM_BASE_URL", "http://localhost:11434/v1"):
+            spec = llm.resolve_model_spec("graph_expansion")
+
+        self.assertEqual(spec.provider, "local")
+        self.assertEqual(spec.model_id, "llama3.1")
+
+    def test_legacy_llm_provider_still_works_as_global_override(self):
+        from backend import llm
+
+        with patch.dict("os.environ", {}, clear=True), \
+             patch("backend.llm.LLM_PROVIDER", "openai"), \
+             patch("backend.llm.OPENAI_API_KEY", "sk-test"), \
+             patch("backend.llm.GEMINI_API_KEY", ""):
+            spec = llm.resolve_model_spec("synthesis")
+
+        self.assertEqual(spec.provider, "openai")
+        self.assertEqual(spec.model_id, "gpt-4o-mini")
+
+
 class TestGraphExpansion(unittest.TestCase):
     def setUp(self):
         from backend.routing import reset_graph
         reset_graph()
 
-    @patch('backend.graph_expansion.GEMINI_API_KEY', '')
-    @patch('backend.graph_expansion.OPENAI_API_KEY', '')
-    def test_expand_new_ticker_no_llm(self):
+    @patch('backend.graph_expansion.has_llm_for_step', return_value=False)
+    def test_expand_new_ticker_no_llm(self, _mock_has_llm):
         from backend.graph_expansion import expand_graph_for_ticker
         from backend.routing import get_graph, add_graph_node
         

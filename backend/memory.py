@@ -33,8 +33,10 @@ _ledger_store: Dict[int, List[Dict[str, Any]]] = {
 #
 # Either way there is no remote embedding API and no ongoing embedding cost.
 
-# Embedding model name (overridable via env for experimentation).
+# Embedding model/cache location (overridable via env for experimentation).
 _EMBEDDING_MODEL_NAME = os.getenv("EMBEDDING_MODEL", "BAAI/bge-small-en-v1.5")
+_DEFAULT_EMBEDDING_CACHE_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "state", "fastembed_cache")
+_EMBEDDING_CACHE_DIR = os.getenv("EMBEDDING_CACHE_DIR", _DEFAULT_EMBEDDING_CACHE_DIR)
 
 # Lazily-initialised singleton + availability flag.
 _embedding_model = None
@@ -62,7 +64,7 @@ def _get_embedding_model():
     if _embedding_model is None:
         try:
             from fastembed import TextEmbedding
-            _embedding_model = TextEmbedding(model_name=_EMBEDDING_MODEL_NAME)
+            _embedding_model = TextEmbedding(model_name=_EMBEDDING_MODEL_NAME, cache_dir=_EMBEDDING_CACHE_DIR)
         except Exception as e:
             print(f"Local embedding model unavailable ({e}). Falling back to lexical similarity.")
             _embedding_unavailable = True
@@ -396,4 +398,3 @@ def check_ledger_decision(ticker: str, canonical_event: Dict[str, Any], similari
     _ledger_store[iteration].append(new_entry)
     
     return "new", catalyst_id, event_facts
-

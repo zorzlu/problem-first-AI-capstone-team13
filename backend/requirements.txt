@@ -2,6 +2,7 @@ fastapi
 uvicorn
 langgraph
 langchain-core
+langchain-anthropic
 langchain-google-genai
 langchain-openai
 arize-phoenix
