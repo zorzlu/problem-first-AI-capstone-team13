@@ -2,13 +2,20 @@
   "version": "2.0.0",
   "tasks": [
     {
+      "label": "Setup Local Environment",
+      "type": "shell",
+      "command": "powershell",
+      "args": ["-ExecutionPolicy", "Bypass", "-File", "scripts/setup.ps1"],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": []
+    },
+    {
       "label": "Install Backend Requirements",
       "type": "shell",
-      "command": "${workspaceFolder}/backend/.venv/bin/pip",
-      "windows": {
-        "command": "${workspaceFolder}/backend/.venv/Scripts/pip"
-      },
-      "args": ["install", "-r", "backend/requirements.txt"],
+      "command": "uv",
+      "args": ["sync", "--project", "backend", "--frozen", "--link-mode=copy"],
       "options": {
         "cwd": "${workspaceFolder}"
       },
@@ -27,11 +34,8 @@
     {
       "label": "Run Unit Tests",
       "type": "shell",
-      "command": "${workspaceFolder}/backend/.venv/bin/python",
-      "windows": {
-        "command": "${workspaceFolder}/backend/.venv/Scripts/python"
-      },
-      "args": ["-m", "backend.run_tests"],
+      "command": "uv",
+      "args": ["run", "--project", "backend", "--frozen", "python", "-m", "backend.tests.run_tests"],
       "options": {
         "cwd": "${workspaceFolder}"
       },

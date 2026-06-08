@@ -42,3 +42,13 @@ phoenix.db
 backend/state/*.log
 backend/state/fastembed_cache/
 backend/state/*.log
+backend/state/eval_runs/
+backend/state/settings.json
+
+# Mutable per-run state. The app self-seeds these on first boot from
+# backend/seed_data.py (EXPOSURE_GRAPH) and the DEFAULT_WATCHLIST, so they should not be
+# committed — a committed copy ships one machine's run as repo "truth" and dirties the
+# tree on every run. (Already-tracked copies must be untracked once: see README.)
+backend/state/graph.json
+backend/state/run_results.json
+backend/state/watchlist.json

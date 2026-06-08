@@ -1,0 +1,105 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  backend:
+    name: Backend (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-latest, ubuntu-latest]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b
+        with:
+          enable-cache: true
+          python-version: "3.11"
+          working-directory: backend
+
+      - name: Install locked backend dependencies
+        run: uv sync --project backend --locked --link-mode=copy
+
+      - name: Check backend dependency consistency
+        # OS-agnostic: resolve pip through the synced project rather than a hardcoded
+        # Scripts/python.exe path (which only exists on Windows).
+        run: uv run --project backend --locked python -m pip check
+
+      - name: Run backend tests
+        run: uv run --project backend --locked python -m backend.tests.run_tests
+
+  frontend:
+    name: Frontend (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-latest, ubuntu-latest]
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Run frontend interaction tests
+        run: npm run test
+
+      - name: Build frontend
+        run: npm run build
+
+      - name: Audit high-severity frontend advisories
+        run: npm audit --audit-level=high
+
+  static-analysis:
+    name: Backend static analysis (pyright)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b
+        with:
+          enable-cache: true
+          python-version: "3.11"
+          working-directory: backend
+
+      - name: Install locked backend dependencies
+        run: uv sync --project backend --locked --link-mode=copy
+
+      - name: Run pyright
+        # Config (basic mode, venv, includes/excludes) lives in root pyproject.toml
+        # [tool.pyright]. Non-blocking for now: the remaining findings are LangChain
+        # typing-stub limitations (.with_structured_output returns a loose union;
+        # SecretStr vs str for api keys). Tracked for tightening — see
+        # research/architecture-issues-and-remediations-20260608.md (I-10). Drop
+        # continue-on-error once those are resolved to make this a hard gate.
+        continue-on-error: true
+        run: uvx pyright

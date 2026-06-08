@@ -24,7 +24,7 @@ Built with **LangGraph** (pipeline orchestration), **FastAPI** (backend API), **
 
 ## How It Works
 
-Each run executes one of three compiled LangGraph workflows in `backend/iterations/`, all built from shared helpers in `backend/iterations/common.py`:
+Each run executes one of three compiled LangGraph workflows in `backend/iterations/`. The iteration files wire focused extraction, routing, memory, synthesis, guardrail, fetching, and prompt modules:
 
 ```text
 Iteration 1
@@ -95,9 +95,10 @@ When you **add a ticker** to the watchlist, a background task maps that ticker's
 
 | Tool | Minimum Version | Notes |
 |------|----------------|-------|
-| Python | 3.11.8 | Encoded in `.python-version`, `backend/.python-version`, `runtime.txt`, and `pyproject.toml` |
+| Python | 3.11.8 | Encoded in `.python-version`, `backend/.python-version`, `runtime.txt`, and `backend/pyproject.toml` |
 | Node.js | 18.x | 20.x or later also works |
 | npm | 9.x | Comes with Node.js |
+| uv | 0.11.x | Backend Python dependency locking/sync |
 
 Check your versions:
 
@@ -105,6 +106,7 @@ Check your versions:
 python --version
 node --version
 npm --version
+uv --version
 ```
 
 The backend is intended to run from the isolated environment at `backend/.venv`. Tools that understand `.python-version` or `pyproject.toml` should select Python 3.11 automatically; otherwise create the venv with Python 3.11 explicitly.
@@ -235,32 +237,54 @@ git clone <repo-url>
 cd problem-first-AI-capstone-team13
 ```
 
-### Step 2 — Set up the Python backend
+### Step 2 — Set up the local environment
 
-**Create and activate a virtual environment:**
+Run the setup script once after cloning or after pulling dependency changes:
 
-```bash
-# Create with Python 3.11
-python -m venv backend/.venv
-
-# Windows alternative if multiple Python versions are installed
-py -3.11 -m venv backend/.venv
-
-# Activate — Windows PowerShell
-.\backend\.venv\Scripts\Activate.ps1
-
-# Activate — Windows CMD
-backend\.venv\Scripts\activate.bat
-
-# Activate — macOS / Linux
-source backend/.venv/bin/activate
+```powershell
+# Windows PowerShell
+powershell -ExecutionPolicy Bypass -File scripts/setup.ps1
 ```
 
-**Install Python dependencies:**
+```bash
+# macOS / Linux
+bash scripts/setup.sh
+```
+
+The setup script:
+
+- syncs the backend Python environment from `backend/pyproject.toml` and `backend/uv.lock`;
+- installs frontend dependencies with `npm ci`;
+- creates `backend/.env` from `backend/.env.example` if it does not already exist;
+- creates `frontend/.env` from `frontend/.env.example` if it does not already exist.
+
+It never overwrites existing `.env` files.
+
+You can also run the same action from VS Code: `Tasks: Run Task` -> `Setup Local Environment`.
+
+### Manual Backend Setup
+
+**Install Python dependencies with uv:**
 
 ```bash
-python -m pip install -r backend/requirements.txt
+uv sync --project backend --frozen --link-mode=copy
 ```
+
+This creates/syncs `backend/.venv` from `backend/pyproject.toml` and
+`backend/uv.lock`. The backend dependency source of truth is:
+
+- `backend/pyproject.toml`: human-maintained dependency ranges and Python version.
+- `backend/uv.lock`: committed resolved lock for deterministic installs.
+
+Run backend commands from the repository root through uv:
+
+```bash
+uv run --project backend --frozen python -m backend.tests.run_tests
+uv run --project backend --frozen python -m uvicorn backend.main:app --host 127.0.0.1 --port 8000
+```
+
+`--link-mode=copy` avoids Windows cross-filesystem hardlink/clone issues when the
+uv cache and the venv live on different drives.
 
 **Create your `.env` file:**
 
@@ -285,13 +309,26 @@ FINNHUB_API_KEY=your_key_here
 CURRENTS_API_KEY=your_key_here
 ```
 
-### Step 3 — Set up the React frontend
+### Manual Frontend Setup
 
 ```bash
 cd frontend
 npm install
 cd ..
 ```
+
+Optional frontend env overrides live in `frontend/.env`:
+
+```bash
+cd frontend
+copy .env.example .env   # Windows
+# cp .env.example .env   # macOS / Linux
+```
+
+Local development normally uses relative `/api` calls and the Vite dev-server proxy.
+Use `VITE_API_PROXY_TARGET` to change the local proxy backend. Use
+`VITE_API_BASE_URL` only when a built frontend is served from a different origin than
+the backend API.
 
 ---
 
@@ -304,8 +341,7 @@ You need **two terminals** open from the repository root.
 **Terminal 1 — Backend:**
 
 ```bash
-# Activate the venv first if not already active (see Step 2 above)
-python -m uvicorn backend.main:app --host 127.0.0.1 --port 8000
+uv run --project backend --frozen python -m uvicorn backend.main:app --host 127.0.0.1 --port 8000
 ```
 
 The backend starts at `http://localhost:8000`.  
@@ -325,13 +361,12 @@ Open your browser to `http://localhost:5173`.
 **Without activating the venv**, use the interpreter directly:
 
 ```powershell
-# Windows PowerShell
-backend\.venv\Scripts\python.exe -m uvicorn backend.main:app --host 127.0.0.1 --port 8000
+uv run --project backend --frozen python -m uvicorn backend.main:app --host 127.0.0.1 --port 8000
 ```
 
 ```bash
 # macOS / Linux
-backend/.venv/bin/python -m uvicorn backend.main:app --host 127.0.0.1 --port 8000
+uv run --project backend --frozen python -m uvicorn backend.main:app --host 127.0.0.1 --port 8000
 ```
 
 ---
@@ -345,7 +380,7 @@ The `.vscode/launch.json` includes pre-configured debug/run configurations:
 | `Backend: FastAPI Server` | Starts Uvicorn with the FastAPI app |
 | `Frontend: Vite React Server` | Runs `npm run dev` in `frontend/` |
 | `Tracing: Arize Phoenix Server` | Starts the Phoenix collector separately |
-| `Backend: Run Unit Tests` | Runs `backend/run_tests.py` |
+| `Backend: Run Unit Tests` | Runs `backend/tests/run_tests.py` |
 | **`Full Application (Backend + Frontend + Tracing)`** | Launches all three servers at once |
 
 **To start everything:**
@@ -364,11 +399,17 @@ The `.vscode/launch.json` includes pre-configured debug/run configurations:
 The test suite verifies the three LangGraph workflows end-to-end, plus the implemented guardrail paths: direct routing, duplicate suppression, cross-impact graph traversal, prompt-injection framing, judge pass, judge-regeneration, judge-degrade, and judge-error degradation.
 
 ```bash
-# From the repository root, with the venv active
-python -m backend.run_tests
+uv run --project backend --frozen python -m backend.tests.run_tests
 ```
 
 Or via the VS Code launch config `Backend: Run Unit Tests`.
+
+Frontend interaction tests run with Vitest and Testing Library:
+
+```bash
+cd frontend
+npm run test
+```
 
 **What the tests cover:**
 
@@ -380,6 +421,35 @@ Or via the VS Code launch config `Backend: Run Unit Tests`.
 | `TestGuardrails` | Guardrail unit scenarios | Prompt-injection wrapper, judge pass, regeneration, double-fail degradation, and judge exception degradation |
 
 Tests run with mocked LLM responses and do not require any API keys.
+
+## Running Eval Sets
+
+Unit tests verify implementation behavior with mocked model calls. Eval sets exercise
+the compiled product workflows end-to-end and grade scenario-level expectations. They
+also emit Phoenix-friendly spans when Phoenix tracing is enabled, so eval runs can be
+inspected beside normal traces.
+
+```bash
+# From the repository root, with the venv active
+uv run --project backend --frozen python -m backend.evals.runner --eval-set replay_scenarios
+
+# Stateful memory/routing path-set evals
+uv run --project backend --frozen python -m backend.evals.runner --eval-set memory_and_routing_paths
+
+# Run locally without initializing Phoenix tracing
+uv run --project backend --frozen python -m backend.evals.runner --eval-set replay_scenarios --no-phoenix
+```
+
+Eval run JSON is written under `backend/state/eval_runs/`. Eval execution is kept out
+of the analyst UI; run it from CI, a terminal, or a Phoenix/Arize-oriented operator
+workflow.
+
+## Runtime Settings
+
+The app includes a **Settings** button in the header for non-secret runtime knobs. It
+can route each semantic LLM step (`extraction`, `synthesis`, `judge`,
+`graph_expansion`) to a configured provider/model. API keys, base URLs, eval
+execution, CORS, and deployment-level settings remain outside the analyst UI.
 
 ---
 
@@ -448,6 +518,34 @@ All variables go in `backend/.env`. Copy `backend/.env.example` as a starting po
 | `PHOENIX_PORT` | `6006` | No | Port for the Arize Phoenix tracing dashboard. |
 | `PHOENIX_PROJECT_NAME` | `cross-impact-catalysts` | No | Project label shown in the Phoenix dashboard. |
 | `FRESHNESS_LOOKBACK_MINUTES` | `10` | No | How many minutes back from "now" to accept articles in live mode. Replay scenarios bypass this filter. |
+| `CORS_ORIGINS` | `http://localhost:5173,http://127.0.0.1:5173` | No | Comma-separated browser origins allowed to call the backend API. |
+| `BACKEND_HOST` | `127.0.0.1` | No | Uvicorn bind host. Loopback by default. The API has **no auth**, so `0.0.0.0` exposes full pipeline control to the LAN — only set it for a trusted local-network demo. |
+| `BACKEND_PORT` | `8000` | No | Uvicorn bind port. |
+| `BACKEND_RELOAD` | `0` | No | Set `1` to enable dev autoreload. Reload respawns the worker and wipes the in-memory catalyst ledger and graph-expansion status. |
+| `PIPELINE_RUN_TIMEOUT_SECONDS` | `300` | No | Hard ceiling for a single `/api/run`. On timeout the request returns 504 and the ledger is rolled back. Raise it for slow providers. |
+
+### State and seeding
+
+`backend/state/watchlist.json`, `graph.json`, and `run_results.json` are **mutable runtime
+state and are git-ignored**. On first boot the app self-seeds from `backend/seed_data.py`
+(`EXPOSURE_GRAPH`) and the `DEFAULT_WATCHLIST` (AAPL, MSFT, NVDA, TSM, DAL), so all three
+iterations work immediately on a clean clone — no committed state required.
+
+> If these files were tracked in an earlier checkout, untrack them once so the ignore rule
+> takes effect (this keeps the files on disk):
+> ```bash
+> git rm --cached backend/state/graph.json backend/state/run_results.json backend/state/watchlist.json
+> ```
+
+To prewarm or verify the local embedding engine before a demo:
+
+```bash
+uv run --project backend --frozen python -m backend.scripts.prewarm_embeddings
+```
+
+If the model is not cached yet, FastEmbed may download it on first use. If loading
+fails, the app falls back to deterministic lexical matching and reports that fallback
+through `/api/memory-status`.
 
 ---
 
@@ -456,32 +554,61 @@ All variables go in `backend/.env`. Copy `backend/.env.example` as a starting po
 ```
 problem-first-AI-capstone-team13/
 ├── backend/
-│   ├── main.py               # FastAPI app — routes and pipeline invocation
-│   ├── config.py             # Env vars and Phoenix init
-│   ├── llm.py                # Provider registry and per-step LLM route resolution
-│   ├── graph_expansion.py    # LLM-driven exposure-graph expansion (runs on ticker-add)
-│   ├── ingestion.py          # Finnhub/Currents API clients + scenario replay
-│   ├── routing.py            # Exposure graph state + path traversal + scoring
-│   ├── memory.py             # In-memory catalyst ledger + local embedding/lexical dedup engine
-│   ├── seed_data.py          # Seeded exposure graph and replay scenario articles
-│   ├── persistence.py        # JSON file persistence for watchlist + graph + run results
+│   ├── main.py               # FastAPI app factory, CORS, lifespan startup, router registration
+│   ├── core/                 # Cross-cutting infrastructure
+│   │   ├── config.py         # Env vars and Phoenix init
+│   │   ├── llm.py            # Provider registry and per-step LLM route resolution
+│   │   └── _win_mimetypes.py # Windows MIME-type compatibility shim
+│   ├── api/                  # API schemas and route modules
+│   │   └── routes/           # Watchlist, graph, ledger, settings, pipeline, status endpoints
+│   ├── services/             # App state, pipeline orchestration, runtime settings
+│   ├── storage/              # JSON file persistence helpers
+│   ├── evals/                # Eval runner and eval-set definitions
+│   ├── tests/                # Backend unit/integration-style tests (one module per suite)
+│   ├── scripts/              # Manual utilities and local server helpers
+│   │   └── prewarm_embeddings.py # Local embedding model check/prewarm helper
+│   ├── ingestion/            # News ingestion domain
+│   │   ├── news.py           # Finnhub/Currents API clients + scenario replay
+│   │   └── scenarios.py      # Replay scenario article datasets
+│   ├── memory/               # Catalyst memory domain
+│   │   └── ledger.py         # In-memory catalyst ledger + local embedding/lexical dedup engine
+│   ├── graph/                # Exposure graph domain
+│   │   ├── graph.py          # Exposure graph state + path traversal + scoring
+│   │   ├── expansion.py      # LLM-driven exposure-graph expansion (runs on ticker-add)
+│   │   └── seed.py           # Seeded starter exposure graph (default watchlist)
 │   ├── iterations/
 │   │   ├── __init__.py       # Iteration selector/cacher for compiled LangGraph apps
-│   │   ├── common.py         # Shared schemas, prompts, Send fan-out helpers, and output safety judge
+│   │   ├── contracts.py      # LangGraph state and structured-output schemas
+│   │   ├── extraction_focus.py # Extraction focus and ticker-alias context helpers
+│   │   ├── fetching.py       # Shared fetch/filter node
+│   │   ├── extraction.py     # Canonical event extraction node
+│   │   ├── routing_nodes.py  # Candidate routing node
+│   │   ├── memory_nodes.py   # Catalyst assignment and ledger dedup nodes
+│   │   ├── synthesis.py      # Synthesis worker + fan-in (with synthesis_buckets/scoring/postprocess)
+│   │   ├── guardrails.py     # Safety judge and compliance gate
+│   │   ├── utils.py          # Small shared iteration helpers
+│   │   ├── mock_data.py      # Mock extraction fixtures for no-key mode
+│   │   ├── prompts.py        # Extraction, synthesis, and judge prompt templates
+│   │   ├── common.py         # Compatibility exports for iteration wiring
 │   │   ├── iter1.py          # Direct-news workflow
 │   │   ├── iter2.py          # Direct-news + catalyst memory workflow
 │   │   └── iter3.py          # Cross-impact workflow with graph expansion inputs
-│   ├── state/                # Persisted state (watchlist.json, graph.json) — survives restarts
-│   ├── run_tests.py          # Unit test suite (3 end-to-end workflow tests)
-│   ├── requirements.txt      # Python dependencies (unpinned)
+│   ├── state/                # Persisted state (watchlist.json, graph.json) — git-ignored, self-seeds on first boot
+│   ├── pyproject.toml        # Backend Python dependency ranges and Python version
+│   ├── uv.lock               # Reproducible backend dependency lock used by CI
 │   ├── .env.example          # Environment variable template
 │   └── .venv/                # Local Python virtual environment (not committed)
 ├── frontend/
 │   ├── src/
-│   │   ├── App.tsx           # All dashboard logic, state, and rendering
+│   │   ├── App.tsx           # Dashboard orchestration and page state
+│   │   ├── api/              # Frontend API client
+│   │   ├── components/       # Graph view, settings modal, status popover, ticker modal
+│   │   ├── test/             # Vitest/Testing Library setup
+│   │   ├── types.ts          # Shared frontend types and defaults
 │   │   ├── main.tsx          # React DOM mount point
 │   │   └── index.css         # Dark-theme CSS variables and component styles
 │   ├── index.html
+│   ├── .env.example          # Optional frontend env overrides
 │   ├── package.json
 │   └── vite.config.ts        # Vite config — dev server port 5173, /api proxy to 8000
 ├── .vscode/
@@ -506,11 +633,20 @@ Run this once to allow local scripts:
 Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
 ```
 
+### `uv sync` reports access denied for a `.pyd` file on Windows
+Stop any running backend, Phoenix, or Python processes that are using `backend/.venv`,
+then rerun:
+```powershell
+uv sync --project backend --frozen --link-mode=copy
+```
+This can happen when converting an older pip-managed venv to the uv-locked backend
+environment and Windows keeps a compiled extension loaded.
+
 ### `ModuleNotFoundError: No module named 'backend'`
 Run the backend as a module from the **repository root**, not from inside the `backend/` directory:
 ```bash
 # Correct — from the repo root
-python -m uvicorn backend.main:app --host 127.0.0.1 --port 8000
+uv run --project backend --frozen python -m uvicorn backend.main:app --host 127.0.0.1 --port 8000
 
 # Wrong
 cd backend && python main.py
@@ -519,7 +655,7 @@ cd backend && python main.py
 ### Arize Phoenix dashboard shows no traces
 Phoenix must be running as a separate collector process for the dashboard at `http://localhost:6006` to display data. Use the `Full Application (Backend + Frontend + Tracing)` VS Code compound config, or start it manually:
 ```bash
-python -m phoenix.server.main serve
+uv run --project backend --frozen python -m phoenix.server.main serve
 ```
 The backend instruments LangGraph via OpenTelemetry on startup and sends traces to `localhost:4317`.
 
@@ -533,4 +669,4 @@ Check the backend terminal for the Python traceback. Common causes:
 - Verify your `FINNHUB_API_KEY` and `CURRENTS_API_KEY` are set correctly. Check the backend terminal for API error messages.
 
 ### Watchlist or exposure graph state
-The watchlist and the exposure graph are persisted to JSON files in `backend/state/` (`watchlist.json` and `graph.json`) and reloaded on startup, so they survive backend restarts. The catalyst ledger is **not** persisted — it lives in memory only, expires after 1 day, and can be cleared from the UI (**Reset Cache**) or via `POST /api/ledger/clear`. To start the graph from a clean curated seed, use the graph **Rebuild (reset)** action (`POST /api/graph/rebuild` with `reset=true`), which restores the seed and re-expands every watchlist ticker.
+The watchlist and the exposure graph are persisted to versioned JSON files in `backend/state/` (`watchlist.json` and `graph.json`) and reloaded on startup, so they survive backend restarts. Legacy unwrapped state files still load. The catalyst ledger is **not** persisted — it lives in memory only, expires after 1 day, and can be cleared from the UI (**Reset Cache**) or via `POST /api/ledger/clear`. To start the graph from a clean curated seed, use the graph **Rebuild (reset)** action (`POST /api/graph/rebuild` with `reset=true`), which restores the seed and re-expands every watchlist ticker.

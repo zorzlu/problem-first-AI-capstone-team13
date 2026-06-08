@@ -6,7 +6,7 @@
       "type": "debugpy",
       "request": "launch",
       "module": "uvicorn",
-      "args": ["backend.main:app", "--host", "0.0.0.0", "--port", "8000"],
+      "args": ["backend.main:app", "--host", "127.0.0.1", "--port", "8000"],
       "windows": {
         "python": "${workspaceFolder}/backend/.venv/Scripts/python.exe"
       },
@@ -27,7 +27,7 @@
       "name": "Backend: Run Unit Tests",
       "type": "debugpy",
       "request": "launch",
-      "module": "backend.run_tests",
+      "module": "backend.tests.run_tests",
       "windows": {
         "python": "${workspaceFolder}/backend/.venv/Scripts/python.exe"
       },
@@ -55,7 +55,7 @@
       "name": "Tracing: Arize Phoenix Server",
       "type": "node-terminal",
       "request": "launch",
-      "command": "./backend/.venv/Scripts/python.exe ./backend/run_phoenix.py serve",
+      "command": "./backend/.venv/Scripts/python.exe ./backend/scripts/run_phoenix.py serve",
       "cwd": "${workspaceFolder}",
       "env": {
         "PYTHONIOENCODING": "utf-8",

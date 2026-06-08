@@ -1,0 +1,40 @@
+{
+  "name": "replay_scenarios",
+  "description": "Deterministic smoke evals for the three replay scenarios and the core iteration promises.",
+  "watchlist": ["AAPL", "MSFT", "NVDA", "TSM", "DAL"],
+  "cases": [
+    {
+      "id": "iter1_direct_news",
+      "iteration": 1,
+      "scenario_id": "direct_news",
+      "simulated_now": "2026-05-28T17:25:00Z",
+      "assertions": {
+        "minCanonicalEvents": 2,
+        "requiredTickerSyntheses": ["AAPL", "MSFT"],
+        "requiredDirectRoutes": ["AAPL", "MSFT"]
+      }
+    },
+    {
+      "id": "iter2_duplicate_memory",
+      "iteration": 2,
+      "scenario_id": "duplicate_news",
+      "simulated_now": "2026-05-28T17:25:00Z",
+      "assertions": {
+        "minCanonicalEvents": 3,
+        "requiredTickerSyntheses": ["AAPL"],
+        "duplicateCountsAtLeast": {"AAPL": 1}
+      }
+    },
+    {
+      "id": "iter3_cross_impact",
+      "iteration": 3,
+      "scenario_id": "cross_impact",
+      "simulated_now": "2026-05-28T17:25:00Z",
+      "assertions": {
+        "minCanonicalEvents": 3,
+        "requiredTickerSyntheses": ["AAPL", "MSFT", "NVDA", "TSM", "DAL"],
+        "requiredIndirectRoutes": ["AAPL", "MSFT", "NVDA", "TSM", "DAL"]
+      }
+    }
+  ]
+}

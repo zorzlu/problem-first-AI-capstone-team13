@@ -1,0 +1,77 @@
+{
+  "name": "memory_and_routing_paths",
+  "description": "Stateful path-set evals for memory impact, idempotence, and cross-impact routing behavior.",
+  "watchlist": ["AAPL", "MSFT", "NVDA", "TSM", "DAL"],
+  "cases": [
+    {
+      "id": "iter1_does_not_write_memory",
+      "clearLedgerBeforeCase": true,
+      "steps": [
+        {
+          "id": "direct_news_no_ledger",
+          "iteration": 1,
+          "scenario_id": "direct_news",
+          "simulated_now": "2026-05-28T17:25:00Z",
+          "assertions": {
+            "requiredTickerSyntheses": ["AAPL", "MSFT"],
+            "requiredDirectRoutes": ["AAPL", "MSFT"],
+            "ledgerLiveTotalEquals": 0
+          }
+        }
+      ]
+    },
+    {
+      "id": "iter2_story_memory_progression",
+      "clearLedgerBeforeCase": true,
+      "steps": [
+        {
+          "id": "first_duplicate_feed_ingest",
+          "iteration": 2,
+          "scenario_id": "duplicate_news",
+          "simulated_now": "2026-05-28T17:25:00Z",
+          "assertions": {
+            "minCanonicalEvents": 3,
+            "requiredTickerSyntheses": ["AAPL"],
+            "duplicateCountsAtLeast": {"AAPL": 1},
+            "ledgerLiveEntriesAtLeast": {"AAPL": 1}
+          }
+        },
+        {
+          "id": "same_feed_rerun_is_suppressed_by_memory",
+          "iteration": 2,
+          "scenario_id": "duplicate_news",
+          "simulated_now": "2026-05-28T17:25:00Z",
+          "assertions": {
+            "minCanonicalEvents": 3,
+            "duplicateCountsAtLeast": {"AAPL": 1},
+            "ledgerLiveEntriesEquals": {"AAPL": 1}
+          }
+        }
+      ]
+    },
+    {
+      "id": "iter3_indirect_paths_are_present",
+      "clearLedgerBeforeCase": true,
+      "steps": [
+        {
+          "id": "cross_impact_routes_to_exposed_tickers",
+          "iteration": 3,
+          "scenario_id": "cross_impact",
+          "simulated_now": "2026-05-28T17:25:00Z",
+          "assertions": {
+            "minCanonicalEvents": 3,
+            "requiredTickerSyntheses": ["AAPL", "MSFT", "NVDA", "TSM", "DAL"],
+            "requiredIndirectRoutes": ["AAPL", "MSFT", "NVDA", "TSM", "DAL"],
+            "ledgerLiveEntriesAtLeast": {
+              "AAPL": 1,
+              "MSFT": 1,
+              "NVDA": 1,
+              "TSM": 1,
+              "DAL": 1
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

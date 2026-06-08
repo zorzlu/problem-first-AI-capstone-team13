@@ -1,9 +1,23 @@
 [project]
-name = "problem-first-ai-capstone-team13"
+name = "problem-first-ai-capstone-team13-workspace"
 version = "0.1.0"
 requires-python = ">=3.11,<3.12"
-dynamic = ["dependencies"]
+dependencies = []
 
 [tool.pyright]
 venvPath = "backend"
 venv = ".venv"
+# Kept at "basic" so the CI gate is meaningful without drowning in the strict-mode
+# backlog. Raise to "standard"/"strict" incrementally as types are tightened.
+typeCheckingMode = "basic"
+include = ["backend"]
+exclude = [
+    "**/.venv",
+    "**/__pycache__",
+    "backend/state",
+    # Scratch utilities, not shipped app logic.
+    "backend/scripts",
+    # The test suite deliberately constructs invalid models to exercise validation, so
+    # type errors there are intentional.
+    "backend/tests",
+]
