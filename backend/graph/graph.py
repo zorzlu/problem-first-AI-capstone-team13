@@ -16,10 +16,17 @@ def _is_match(event_term: str, node_text: str) -> bool:
     if event_term == node_text:
         return True
         
-    # Word boundary match (highly robust and avoids substring issues like "ai" in "taiwan" or "hon hai")
+    # Word boundary match (highly robust and avoids substring issues like "ai" in "taiwan" or "hon hai").
+    # The event term must also cover at least half of the node term's words: a distinctive
+    # sub-phrase like "export controls" may anchor "US Export Controls", but a lone generic
+    # word like "taiwan" must not anchor "Taiwan Strait tensions" — that is how incidental
+    # region tags routed chip stories to consumer brands.
     pattern = r'\b' + re.escape(event_term) + r'\b'
     if re.search(pattern, node_text):
-        return True
+        event_words = len(re.findall(r"[a-z0-9]+", event_term))
+        node_words = len(re.findall(r"[a-z0-9]+", node_text))
+        if node_words == 0 or event_words / node_words >= 0.5:
+            return True
         
     # Plural/Singular stem matching for terms of length >= 4
     if len(event_term) >= 4:
@@ -313,19 +320,26 @@ def find_paths_to_watchlist(start_node_id: str, watchlist_node_ids: Set[str], ma
     nodes = {n["nodeId"]: n for n in _graph_store["nodes"]}
     edges = _graph_store["edges"]
     company_types = {"ticker", "private_company"}
-    
+
     # Simple BFS/DFS pathfinding
     paths = []
-    
-    def is_allowed_transition(current_id: str, neighbor_id: str, edge: Dict[str, Any]) -> bool:
+    start_is_company = nodes.get(start_node_id, {}).get("nodeType") in company_types
+
+    def is_allowed_transition(current_id: str, neighbor_id: str, edge: Dict[str, Any], hop_index: int) -> bool:
         c_node = nodes.get(current_id)
         n_node = nodes.get(neighbor_id)
         if not c_node or not n_node:
             return False
-            
+
+        # Competitive spillover is only a credible cross-impact when the event happened AT a
+        # company and we hop to its direct competitor. Anywhere deeper it just amplifies noise:
+        # a macro exposure (e.g. China tensions -> MCD) does not transfer to MCD's competitors.
+        if edge.get("edgeType") == "competitor_of" and not (start_is_company and hop_index == 0):
+            return False
+
         c_type = c_node.get("nodeType")
         n_type = n_node.get("nodeType")
-        
+
         # If it is an exposure/sensitivity edge:
         if edge.get("edgeType") in {
             "regional_exposure", "technology_exposure", "shipping_exposure", 
@@ -366,18 +380,68 @@ def find_paths_to_watchlist(start_node_id: str, watchlist_node_ids: Set[str], ma
         for edge in edges:
             f, t = edge["fromNodeId"], edge["toNodeId"]
             if f == current_id and t not in visited:
-                if is_allowed_transition(current_id, t, edge):
+                if is_allowed_transition(current_id, t, edge, len(current_path)):
                     dfs(t, current_path + [edge], visited | {t})
             elif t == current_id and f not in visited:
                 # Reverse edge traversal is valid since relationship is bi-directional exposure
                 # We create a reversed version of the edge for path building
-                if is_allowed_transition(current_id, f, edge):
+                if is_allowed_transition(current_id, f, edge, len(current_path)):
                     rev_edge = copy.deepcopy(edge)
                     rev_edge["fromNodeId"], rev_edge["toNodeId"] = t, f
                     dfs(f, current_path + [rev_edge], visited | {f})
                 
     dfs(start_node_id, [], {start_node_id})
     return paths
+
+# Broad geographic anchors. A regional_exposure edge from a country/continent-scale economy
+# ("United States" -> McDonald's) encodes little more than "operates there": nearly every large
+# cap matches, so a chip story tagged with a US region would otherwise route to fast-food chains
+# (the "false butterfly" failure mode). Narrow production geographies (Taiwan, Hsinchu) stay
+# fully routable. Names are checked against node name + aliases; the fan-out heuristic catches
+# future LLM-added mega-hub regions the static list misses.
+_BROAD_GEO_NODE_TYPES = {"region", "country"}
+_BROAD_GEO_NAMES = {
+    "united states", "us", "usa", "america", "north america",
+    "europe", "european union", "eu",
+    "china", "asia", "global", "worldwide",
+}
+_BROAD_GEO_FANOUT_THRESHOLD = 6
+_EXPOSURE_EDGE_TYPES = {
+    "regional_exposure", "technology_exposure", "shipping_exposure",
+    "macro_sensitivity", "policy_exposure", "defense_exposure",
+    "trade_exposure", "sector_exposure", "commodity_exposure",
+}
+# Broad-geo-anchored paths never exceed the weak band (< 0.70), so synthesis demotes them
+# to watch items instead of presenting them as primary catalysts.
+_BROAD_GEO_SCORE_CAP = 0.69
+
+
+def _is_broad_geo_anchor(node: Dict[str, Any], nodes: Dict[str, Dict[str, Any]], edges: List[Dict[str, Any]]) -> bool:
+    if node.get("nodeType") not in _BROAD_GEO_NODE_TYPES:
+        return False
+
+    from backend.graph.overrides import get_overrides
+    overrides = get_overrides()
+    node_id = node.get("nodeId")
+    if node_id in overrides.get("notBroadGeoNodes", []):
+        return False
+    if node_id in overrides.get("extraBroadGeoNodes", []):
+        return True
+
+    name_terms = {str(node.get("name", "")).strip().lower()}
+    name_terms.update(str(a).strip().lower() for a in node.get("aliases", []))
+    if name_terms & _BROAD_GEO_NAMES:
+        return True
+
+    company_types = {"ticker", "private_company"}
+    fanout = sum(
+        1 for e in edges
+        if e.get("fromNodeId") == node_id
+        and e.get("edgeType") in _EXPOSURE_EDGE_TYPES
+        and nodes.get(e.get("toNodeId"), {}).get("nodeType") in company_types
+    )
+    return fanout >= _BROAD_GEO_FANOUT_THRESHOLD
+
 
 def route_cross_impact(canonical_event: Dict[str, Any], watchlist: List[str]) -> List[Dict[str, Any]]:
     """
@@ -425,8 +489,21 @@ def route_cross_impact(canonical_event: Dict[str, Any], watchlist: List[str]) ->
             if matched:
                 break
                 
+    # Anchor specificity filter: when the event matched anything topical (a company, technology
+    # theme, policy area, risk factor, or a narrow geography), broad country-scale geo matches are
+    # incidental context (a TSMC story datelined "United States" is not a McDonald's catalyst) and
+    # are dropped. When broad geo nodes are the ONLY anchors (a genuine country-level macro story),
+    # they are kept but capped to the weak band below.
+    edges = _graph_store["edges"]
+    broad_geo_anchor_ids = {
+        nid for nid in matched_node_ids if _is_broad_geo_anchor(nodes[nid], nodes, edges)
+    }
+    specific_anchor_ids = matched_node_ids - broad_geo_anchor_ids
+    if specific_anchor_ids:
+        matched_node_ids = specific_anchor_ids
+
     candidates = []
-    
+
     # Traverse paths from each matched node to watchlist tickers
     for start_node_id in matched_node_ids:
         paths = find_paths_to_watchlist(start_node_id, watchlist_node_ids, max_hops=3)
@@ -467,7 +544,12 @@ def route_cross_impact(canonical_event: Dict[str, Any], watchlist: List[str]) ->
                 path_shortness_bonus = 0.75
                 
             path_score = event_severity * average_edge_confidence * path_shortness_bonus
- 
+
+            # Country-level macro anchors can never produce "strong" routes: every US-exposed
+            # company would otherwise inherit any US-tagged story as a primary catalyst.
+            if start_node_id in broad_geo_anchor_ids:
+                path_score = min(path_score, _BROAD_GEO_SCORE_CAP)
+
             # Route if path score >= 0.45; tag "strong" (>=0.70) vs "weak" (0.45-0.69)
             # so the synthesis LLM can treat marginal paths as watch items, not primary catalysts
             if path_score >= 0.45:
@@ -500,5 +582,10 @@ def route_cross_impact(canonical_event: Dict[str, Any], watchlist: List[str]) ->
         key = (cand["ticker"], cand["eventId"])
         if key not in best_candidates or cand["pathConfidence"] > best_candidates[key]["pathConfidence"]:
             best_candidates[key] = cand
-            
-    return list(best_candidates.values())
+
+    # Operator remediation: drop (anchor, ticker) pairs flagged as false butterflies.
+    from backend.graph.overrides import is_route_suppressed
+    return [
+        c for c in best_candidates.values()
+        if not is_route_suppressed(c["ticker"], c["impactPath"])
+    ]

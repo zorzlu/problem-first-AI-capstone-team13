@@ -1,8 +1,16 @@
 from fastapi import APIRouter, BackgroundTasks, HTTPException
 
-from backend.api.schemas import ExpandRequest, GraphEdgeRequest, GraphNodeRequest, RebuildRequest
+from backend.api.schemas import (
+    ExpandRequest,
+    GraphEdgeRequest,
+    GraphNodeRequest,
+    RebuildRequest,
+    RoutingOverridesRequest,
+    SuppressRouteRequest,
+)
 from backend.graph.expansion import get_expansion_status, mark_pending, process_ticker_expansion
 from backend.graph.graph import add_graph_edge, add_graph_node, get_graph, graph_lock, reset_graph
+from backend.graph.overrides import add_suppressed_route, get_overrides, save_overrides
 from backend.services.app_state import app_state
 from backend.storage.persistence import save_graph
 
@@ -59,6 +67,30 @@ def add_node(node: GraphNodeRequest):
             graph = get_graph()
         return {"status": "success", "graph": graph}
     except Exception as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+
+
+@router.get("/routing-overrides")
+def get_routing_overrides():
+    """Operator remediation overrides applied inside cross-impact routing."""
+    return get_overrides()
+
+
+@router.post("/routing-overrides")
+def replace_routing_overrides(req: RoutingOverridesRequest):
+    try:
+        return {"status": "success", "overrides": save_overrides(req.model_dump())}
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+
+
+@router.post("/routing-overrides/suppress")
+def suppress_route(req: SuppressRouteRequest):
+    """Remediation feedback loop: flag a false-butterfly route so it is never produced again."""
+    try:
+        overrides = add_suppressed_route(ticker=req.ticker, anchor_name=req.anchorName, reason=req.reason)
+        return {"status": "success", "overrides": overrides}
+    except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
 
 

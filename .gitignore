@@ -52,3 +52,4 @@ backend/state/settings.json
 backend/state/graph.json
 backend/state/run_results.json
 backend/state/watchlist.json
+backend/state/routing_overrides.json

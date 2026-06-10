@@ -93,3 +93,27 @@ class GraphEdgeRequest(BaseModel):
 
 class RuntimeSettingsRequest(BaseModel):
     llmRoutes: Dict[str, Dict[str, str]] = {}
+
+
+class SuppressRouteRequest(BaseModel):
+    """Remediation feedback: never route `ticker` from paths anchored at `anchorName`."""
+    ticker: str = Field(min_length=1)
+    anchorName: str = Field(min_length=1)
+    reason: str = ""
+
+    @field_validator("ticker", mode="before")
+    @classmethod
+    def _normalize_ticker(cls, value: str) -> str:
+        return str(value or "").strip().upper()
+
+    @field_validator("anchorName", mode="before")
+    @classmethod
+    def _strip_anchor(cls, value: str) -> str:
+        return str(value or "").strip()
+
+
+class RoutingOverridesRequest(BaseModel):
+    """Full replacement payload for routing overrides."""
+    suppressedRoutes: List[Dict[str, str]] = []
+    extraBroadGeoNodes: List[str] = []
+    notBroadGeoNodes: List[str] = []

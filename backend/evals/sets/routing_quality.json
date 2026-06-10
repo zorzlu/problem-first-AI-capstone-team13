@@ -1,0 +1,260 @@
+{
+  "name": "routing_quality",
+  "description": "Golden cross-impact routing cases. Gates releases: any failure must block the change (guardrails-and-evaluation.md D.3 \u2014 exposure-routing precision / false-butterfly rate). expectedTickers must route; forbiddenTickers must not route at all; maxStrength caps a ticker's allowed pathStrength ('weak' means it may appear only as a watch item).",
+  "watchlist": [
+    "AAPL",
+    "MSFT",
+    "NVDA",
+    "TSM",
+    "DAL",
+    "MCD",
+    "SBUX",
+    "APP"
+  ],
+  "cases": [
+    {
+      "caseId": "tsmc_export_controls",
+      "description": "Chip story with incidental US region tag must stay in the semiconductor supply chain \u2014 the original TSMC->McDonald's false butterfly.",
+      "event": {
+        "eventId": "eval_tsmc_export_001",
+        "eventSummary": "TSMC flags impact from US export controls on advanced chips",
+        "entities": [
+          "TSMC"
+        ],
+        "mentionedTickers": [],
+        "eventTags": [
+          "semiconductor",
+          "export controls"
+        ],
+        "regions": [
+          "Taiwan",
+          "United States"
+        ],
+        "technologyThemes": [
+          "chip manufacturing"
+        ],
+        "possibleDirectionalPressure": "negative"
+      },
+      "expectedTickers": [
+        "TSM",
+        "NVDA",
+        "AAPL"
+      ],
+      "forbiddenTickers": [
+        "MCD",
+        "SBUX",
+        "DAL",
+        "APP"
+      ]
+    },
+    {
+      "caseId": "taiwan_earthquake",
+      "description": "Narrow production geography routes strongly to the local supply chain and nowhere else.",
+      "event": {
+        "eventId": "eval_taiwan_quake_001",
+        "eventSummary": "Major earthquake near Hsinchu, Taiwan; foundries evacuated",
+        "entities": [
+          "Taiwan"
+        ],
+        "mentionedTickers": [],
+        "eventTags": [
+          "earthquake",
+          "foundry evacuation"
+        ],
+        "regions": [
+          "Taiwan"
+        ],
+        "technologyThemes": [],
+        "possibleDirectionalPressure": "negative"
+      },
+      "expectedTickers": [
+        "TSM",
+        "NVDA",
+        "AAPL"
+      ],
+      "requireStrength": {
+        "TSM": "strong"
+      },
+      "forbiddenTickers": [
+        "MCD",
+        "SBUX",
+        "DAL"
+      ]
+    },
+    {
+      "caseId": "us_government_shutdown",
+      "description": "Country-level macro story may reach US names only as weak watch items, never as strong catalysts.",
+      "event": {
+        "eventId": "eval_us_shutdown_001",
+        "eventSummary": "US government shutdown begins after budget talks collapse",
+        "entities": [
+          "US government"
+        ],
+        "mentionedTickers": [],
+        "eventTags": [
+          "government shutdown"
+        ],
+        "regions": [
+          "United States"
+        ],
+        "technologyThemes": [],
+        "possibleDirectionalPressure": "negative"
+      },
+      "expectedTickers": [],
+      "forbiddenTickers": [],
+      "maxStrength": {
+        "AAPL": "weak",
+        "MSFT": "weak",
+        "NVDA": "weak",
+        "TSM": "weak",
+        "DAL": "weak",
+        "MCD": "weak",
+        "SBUX": "weak",
+        "APP": "weak"
+      }
+    },
+    {
+      "caseId": "us_consumer_spending_decline",
+      "description": "Topical macro factor (consumer spending) legitimately routes to consumer names \u2014 must NOT be lost by the broad-geo demotion.",
+      "event": {
+        "eventId": "eval_consumer_spend_001",
+        "eventSummary": "US consumer spending falls for third straight month",
+        "entities": [],
+        "mentionedTickers": [],
+        "eventTags": [
+          "consumer spending"
+        ],
+        "regions": [
+          "United States"
+        ],
+        "technologyThemes": [],
+        "possibleDirectionalPressure": "negative"
+      },
+      "expectedTickers": [
+        "MCD",
+        "SBUX",
+        "AAPL"
+      ],
+      "forbiddenTickers": [
+        "DAL"
+      ]
+    },
+    {
+      "caseId": "us_china_trade_war",
+      "description": "Geopolitical tension story routes strongly to China-exposed tech; MCD only as a weak watch item (China operations risk); competitor chains must not amplify it to SBUX.",
+      "event": {
+        "eventId": "eval_trade_war_001",
+        "eventSummary": "US-China trade war escalates with new tariff round",
+        "entities": [],
+        "mentionedTickers": [],
+        "eventTags": [
+          "trade war",
+          "tariff"
+        ],
+        "regions": [
+          "China",
+          "United States"
+        ],
+        "technologyThemes": [],
+        "possibleDirectionalPressure": "negative"
+      },
+      "expectedTickers": [
+        "NVDA",
+        "AAPL"
+      ],
+      "forbiddenTickers": [
+        "SBUX"
+      ],
+      "maxStrength": {
+        "MCD": "weak"
+      }
+    },
+    {
+      "caseId": "anthropic_frontier_model_launch",
+      "description": "Private AI lab event routes through the Frontier AI theme to MSFT/NVDA, never to consumer/airline names.",
+      "event": {
+        "eventId": "eval_anthropic_001",
+        "eventSummary": "Anthropic launches new frontier AI model",
+        "entities": [
+          "Anthropic"
+        ],
+        "mentionedTickers": [],
+        "eventTags": [
+          "ai model",
+          "frontier ai"
+        ],
+        "regions": [],
+        "technologyThemes": [
+          "frontier ai"
+        ],
+        "possibleDirectionalPressure": "positive"
+      },
+      "expectedTickers": [
+        "MSFT",
+        "NVDA"
+      ],
+      "forbiddenTickers": [
+        "MCD",
+        "SBUX",
+        "DAL"
+      ]
+    },
+    {
+      "caseId": "red_sea_shipping_disruption",
+      "description": "Shipping disruption routes to DAL via logistics costs; logistics-sensitive consumer names may appear weak only.",
+      "event": {
+        "eventId": "eval_red_sea_001",
+        "eventSummary": "Red Sea shipping disruption raises freight rates",
+        "entities": [
+          "Red Sea"
+        ],
+        "mentionedTickers": [],
+        "eventTags": [
+          "red sea",
+          "shipping disruption"
+        ],
+        "regions": [],
+        "technologyThemes": [],
+        "possibleDirectionalPressure": "negative"
+      },
+      "expectedTickers": [
+        "DAL"
+      ],
+      "forbiddenTickers": [],
+      "maxStrength": {
+        "MCD": "weak",
+        "SBUX": "weak"
+      }
+    },
+    {
+      "caseId": "negative_control_local_sports",
+      "description": "Event with no graph anchors must route to nothing (no path -> no briefing).",
+      "event": {
+        "eventId": "eval_sports_001",
+        "eventSummary": "Springfield Tigers win regional championship",
+        "entities": [
+          "Springfield Tigers"
+        ],
+        "mentionedTickers": [],
+        "eventTags": [
+          "sports",
+          "championship"
+        ],
+        "regions": [],
+        "technologyThemes": [],
+        "possibleDirectionalPressure": "unclear"
+      },
+      "expectedTickers": [],
+      "forbiddenTickers": [
+        "AAPL",
+        "MSFT",
+        "NVDA",
+        "TSM",
+        "DAL",
+        "MCD",
+        "SBUX",
+        "APP"
+      ]
+    }
+  ]
+}
