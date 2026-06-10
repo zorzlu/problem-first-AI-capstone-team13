@@ -47,22 +47,28 @@ CORS_ORIGINS = [
     if origin.strip()
 ]
 
-# Global variables to track Phoenix session
-phoenix_session = None
-
 def init_phoenix():
-    """Initializes Arize Phoenix tracing by registering the OTel provider."""
+    """Initializes Arize Phoenix tracing by registering the OTel provider.
+
+    Tracing is best-effort: the app must boot without Phoenix. But the degrade has to be
+    visible in logs — a silently disabled tracer looks identical to a healthy one.
+    """
+    from backend.core.logging import get_logger
+    logger = get_logger(__name__)
     try:
         from phoenix.otel import register
         from openinference.instrumentation.langchain import LangChainInstrumentor
-
+    except ImportError:
+        logger.info("Arize Phoenix not installed; traces will not be captured.")
+        return
+    try:
         # Register the tracing collector (sends to localhost:4317 by default)
-        print("Registering Arize Phoenix OpenTelemetry tracing provider...")
         register(project_name=PHOENIX_PROJECT_NAME)
-        
         # Instrument LangChain & LangGraph
         LangChainInstrumentor().instrument()
-        print("Arize Phoenix OpenTelemetry tracing provider registered successfully.")
-    except Exception as e:
-        print(f"Warning: Failed to initialize Arize Phoenix OpenTelemetry provider: {e}")
-        print("Traces will not be captured.")
+        logger.info("Arize Phoenix OpenTelemetry tracing provider registered.")
+    except Exception:
+        logger.warning(
+            "Failed to initialize Arize Phoenix OpenTelemetry provider; traces will not be captured.",
+            exc_info=True,
+        )

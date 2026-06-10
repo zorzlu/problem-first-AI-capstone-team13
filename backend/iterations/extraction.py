@@ -12,6 +12,9 @@ from backend.iterations.extraction_focus import (
 from backend.iterations.mock_data import MOCK_EVENTS
 from backend.iterations.utils import classify_llm_failure, copy_dict, datetime_now, invoke_with_retry
 from backend.core.llm import get_extraction_llm, has_llm_for_step
+from backend.core.logging import get_logger
+
+logger = get_logger(__name__)
 
 def run_extraction(state: WorkflowState, system_prompt: str, focus_block: str) -> Dict[str, Any]:
     """Extract canonical events from the fetched articles using the given prompt + focus block."""
@@ -101,10 +104,11 @@ def run_extraction(state: WorkflowState, system_prompt: str, focus_block: str) -
         raw_summary = art.get('summary', '')
         summary = clean_summary(headline, raw_summary)
         try:
-            from datetime import datetime, timezone
             pub_dt = datetime.fromisoformat(art['publishedAt'].replace('Z', '+00:00')).astimezone(timezone.utc)
             minutes_ago = int((ref_time - pub_dt).total_seconds() / 60)
-        except Exception:
+        except (KeyError, ValueError, TypeError, AttributeError) as exc:
+            # Expected for missing/malformed publishedAt; anything else should propagate.
+            logger.debug("Could not parse publishedAt for article %s: %s", art.get('articleId'), exc)
             minutes_ago = -1
         age_label = f"{minutes_ago} mins ago" if minutes_ago >= 0 else "unknown age"
         user_content += f"""--- ARTICLE {i+1} ---

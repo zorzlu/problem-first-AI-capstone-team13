@@ -1,5 +1,11 @@
 """Small shared helpers for iteration workflow nodes."""
+import os
+import time
 from datetime import datetime, timezone
+
+from backend.core.logging import get_logger
+
+logger = get_logger(__name__)
 
 def clean_json_string(text: str) -> str:
     """Cleans markdown JSON code blocks from LLM output if present."""
@@ -35,6 +41,11 @@ def invoke_with_retry(runnable, messages, label="LLM call"):
     content failure (the model responded but its output did not match the required
     schema) will not be fixed by retrying — re-issuing the same call just doubles latency
     and API cost — so we re-raise those immediately. Mirrors classify_llm_failure().
+
+    The single retry is intentionally unguarded: if the second attempt also fails, the
+    exception propagates to the caller's fail-classify path. A short backoff
+    (RETRY_BACKOFF_SECONDS, default 2s) precedes the retry — rate-limit errors are
+    transient, and an immediate retry within the same second hits the same limit again.
     """
     from pydantic import ValidationError
     try:
@@ -42,7 +53,10 @@ def invoke_with_retry(runnable, messages, label="LLM call"):
     except Exception as e:
         if isinstance(e, (ValidationError, ValueError)) or "OutputParser" in type(e).__name__:
             raise
-        print(f"  [retry] {label} failed ({e}); retrying once...")
+        backoff = float(os.getenv("RETRY_BACKOFF_SECONDS", "2"))
+        logger.warning("%s failed (%s); retrying once in %.1fs...", label, e, backoff)
+        if backoff > 0:
+            time.sleep(backoff)
         return runnable.invoke(messages)
 
 def datetime_now():

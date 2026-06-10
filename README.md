@@ -527,15 +527,13 @@ All variables go in `backend/.env`. Copy `backend/.env.example` as a starting po
 ### State and seeding
 
 `backend/state/watchlist.json`, `graph.json`, and `run_results.json` are **mutable runtime
-state and are git-ignored**. On first boot the app self-seeds from `backend/seed_data.py`
+state and are git-ignored**. On first boot the app self-seeds from `backend/graph/seed.py`
 (`EXPOSURE_GRAPH`) and the `DEFAULT_WATCHLIST` (AAPL, MSFT, NVDA, TSM, DAL), so all three
 iterations work immediately on a clean clone — no committed state required.
 
-> If these files were tracked in an earlier checkout, untrack them once so the ignore rule
-> takes effect (this keeps the files on disk):
-> ```bash
-> git rm --cached backend/state/graph.json backend/state/run_results.json backend/state/watchlist.json
-> ```
+> These files have been untracked from git, so the ignore rule is in effect: a fresh clone
+> contains no committed state and the app self-seeds on first boot. Pipeline runs no longer
+> dirty the working tree.
 
 To prewarm or verify the local embedding engine before a demo:
 

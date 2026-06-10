@@ -204,6 +204,9 @@ def run_eval_set(name: str, trace_to_phoenix: bool) -> Dict[str, Any]:
 
 
 def main() -> None:
+    from backend.core.logging import configure_logging
+    configure_logging()
+
     parser = argparse.ArgumentParser(description="Run a configured workflow eval set.")
     parser.add_argument("--eval-set", default="replay_scenarios")
     parser.add_argument("--no-phoenix", action="store_true", help="Do not initialize Phoenix tracing for the eval run.")

@@ -8,6 +8,7 @@ from fastapi.responses import JSONResponse
 
 from backend.api.routes import graph, ledger, pipeline, results, settings, status, watchlist
 from backend.core.config import BACKEND_HOST, BACKEND_PORT, BACKEND_RELOAD, CORS_ORIGINS
+from backend.core.logging import configure_logging
 from backend.services.app_state import hydrate_app_state
 
 
@@ -15,6 +16,7 @@ from backend.services.app_state import hydrate_app_state
 async def lifespan(app: FastAPI):
     # Startup: load persisted state and initialize tracing. (Replaces the deprecated
     # @app.on_event("startup") hook.)
+    configure_logging()
     hydrate_app_state()
     yield
 
