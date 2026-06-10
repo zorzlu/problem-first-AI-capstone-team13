@@ -1,8 +1,11 @@
 """Catalyst memory and ledger nodes for iteration workflows."""
 from typing import Any, Dict
 
+from backend.core.logging import get_logger
 from backend.iterations.contracts import WorkflowState
 from backend.memory import check_ledger_decision
+
+logger = get_logger(__name__)
 
 def assign_new_catalysts(state: WorkflowState) -> Dict[str, Any]:
     """Iteration 1 has no catalyst memory: every routed candidate becomes a fresh briefing.
@@ -10,7 +13,7 @@ def assign_new_catalysts(state: WorkflowState) -> Dict[str, Any]:
     Assigns catalyst ids / new-fact lists so downstream synthesis & display work, without
     consulting or writing to the ledger store.
     """
-    print("--- [Node 4: Catalyst Assignment (Iteration 1, no memory)] ---")
+    logger.info("--- [Node 4: Catalyst Assignment (Iteration 1, no memory)] ---")
     try:
         from opentelemetry import trace as otel_trace
         span = otel_trace.get_current_span()
@@ -38,7 +41,7 @@ def assign_new_catalysts(state: WorkflowState) -> Dict[str, Any]:
     return {"routed_candidates": routed_candidates, "duplicate_counts": {}}
 
 def run_ledger_dedup(state: WorkflowState) -> Dict[str, Any]:
-    print("--- [Node 4: Ledger Memory Check] ---")
+    logger.info("--- [Node 4: Ledger Memory Check] ---")
     try:
         from opentelemetry import trace as otel_trace
         span = otel_trace.get_current_span()
@@ -73,14 +76,14 @@ def run_ledger_dedup(state: WorkflowState) -> Dict[str, Any]:
         if decision == "duplicate":
             duplicate_counts[ticker] = duplicate_counts.get(ticker, 0) + 1
             duplicate_count += 1
-            print(f"Memory: Suppressing duplicate event for {ticker}. (Catalyst: {cat_id})")
+            logger.warning("Memory: Suppressing duplicate event for %s. (Catalyst: %s)", ticker, cat_id)
         else:
             if decision == "new":
                 accepted_count += 1
             elif decision == "update":
                 update_count += 1
             filtered_candidates.append(cand)
-            print(f"Memory: Accepted event for {ticker} as {decision.upper()}. (Catalyst: {cat_id})")
+            logger.info("Memory: Accepted event for %s as %s. (Catalyst: %s)", ticker, decision.upper(), cat_id)
             
         if span and span.is_recording():
             span.add_event("ledger_decision", {

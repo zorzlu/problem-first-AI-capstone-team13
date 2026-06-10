@@ -2,9 +2,12 @@
 from typing import Any, Dict
 
 from backend.core.config import FRESHNESS_LOOKBACK_MINUTES
+from backend.core.logging import get_logger
 from backend.ingestion import get_news_payload
 from backend.iterations.contracts import WorkflowState
 from backend.graph.graph import get_cross_impact_queries
+
+logger = get_logger(__name__)
 
 
 def run_fetch_and_filter(state: WorkflowState, expand: bool) -> Dict[str, Any]:
@@ -13,7 +16,7 @@ def run_fetch_and_filter(state: WorkflowState, expand: bool) -> Dict[str, Any]:
     ``expand=True`` widens the search using exposure-graph-derived cross-impact
     keywords and peer tickers; otherwise only the watchlist is queried.
     """
-    print(f"--- [Node 1: Fetching & Filtering News] (expand={expand}) ---")
+    logger.info("--- [Node 1: Fetching & Filtering News] (expand=%s) ---", expand)
     try:
         from opentelemetry import trace as otel_trace
         span = otel_trace.get_current_span()
@@ -32,8 +35,8 @@ def run_fetch_and_filter(state: WorkflowState, expand: bool) -> Dict[str, Any]:
     extra_tickers = []
     if expand:
         cross_impact_keywords, extra_tickers = get_cross_impact_queries(watchlist)
-        print(f"Expanded search terms from exposure graph: {cross_impact_keywords}")
-        print(f"Expanded peer tickers from exposure graph: {extra_tickers}")
+        logger.info("Expanded search terms from exposure graph: %s", cross_impact_keywords)
+        logger.info("Expanded peer tickers from exposure graph: %s", extra_tickers)
 
     payload = get_news_payload(
         symbol_watchlist=watchlist,

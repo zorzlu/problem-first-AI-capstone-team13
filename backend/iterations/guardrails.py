@@ -9,6 +9,9 @@ from backend.iterations.contracts import OutputSafetyJudgeOut, WorkflowState
 from backend.iterations.prompts import JUDGE_SYSTEM_PROMPT
 from backend.iterations.utils import copy_dict, datetime_now, invoke_with_retry
 from backend.core.llm import get_judge_llm, has_llm_for_step
+from backend.core.logging import get_logger
+
+logger = get_logger(__name__)
 
 def judge_synthesis_output(ticker: str, bucket: Dict[str, Any], synthesis: Dict[str, Any]) -> OutputSafetyJudgeOut:
     if not has_llm_for_step("judge"):
@@ -94,7 +97,7 @@ def build_degraded_synthesis(ticker: str, reason: str, source_ids: List[str], so
     }
 
 def run_compliance_gate(state: WorkflowState) -> Dict[str, Any]:
-    print("--- [Node 6: Compliance Gate Check] ---")
+    logger.info("--- [Node 6: Compliance Gate Check] ---")
     try:
         from opentelemetry import trace as otel_trace
         span = otel_trace.get_current_span()

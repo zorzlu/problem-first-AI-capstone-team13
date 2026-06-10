@@ -20,6 +20,7 @@ from backend.iterations.guardrails import build_degraded_synthesis, judge_synthe
 from backend.iterations.prompts import SYNTHESIS_SYSTEM_PROMPT
 from backend.iterations.utils import classify_llm_failure, datetime_now, invoke_with_retry
 from backend.core.llm import get_synthesis_llm, has_llm_for_step
+from backend.core.logging import get_logger
 
 from backend.iterations.synthesis_buckets import (
     build_ticker_buckets_for_synthesis,
@@ -35,6 +36,8 @@ from backend.iterations.synthesis_postprocess import (
     _postprocess_synthesis,
 )
 
+logger = get_logger(__name__)
+
 __all__ = [
     "build_ticker_buckets_for_synthesis",
     "dispatch_ticker_synthesis",
@@ -46,7 +49,7 @@ def synthesize_one_ticker_node(state: WorkflowState) -> Dict[str, Any]:
     """LangGraph worker node: synthesize and judge exactly one ticker branch."""
     ticker = state["active_synthesis_ticker"]
     bucket = state["active_synthesis_bucket"]
-    print(f"--- [Node 5b: Per-Ticker Synthesis Worker] ({ticker}) ---")
+    logger.info("--- [Node 5b: Per-Ticker Synthesis Worker] (%s) ---", ticker)
     try:
         from opentelemetry import trace as otel_trace
         span = otel_trace.get_current_span()
@@ -91,7 +94,7 @@ def synthesize_one_ticker_node(state: WorkflowState) -> Dict[str, Any]:
                 "status": "included" if event.get("pathStrength") == "strong" else "filtered_out",
             })
 
-    print(f"Synthesizing catalyst briefing for ticker: {ticker}")
+    logger.info("Synthesizing catalyst briefing for ticker: %s", ticker)
     context_str = json.dumps(annotated_bucket, indent=2)
     user_prompt = f"TICKER CONFIG: {ticker}\nCONTEXT BUCKET:\n{context_str}"
     src_ids, src_urls = _source_refs_for_bucket(bucket)
@@ -141,7 +144,7 @@ def synthesize_one_ticker_node(state: WorkflowState) -> Dict[str, Any]:
                     })
                 return {"ticker_synthesis_results": [{"ticker": ticker, "synthesis": synthesis, "l3Counts": counts}]}
 
-            print(f"  [guardrail] Judge failed for {ticker}. Defects: {judge_res.defects}")
+            logger.warning("  [guardrail] Judge failed for %s. Defects: %s", ticker, judge_res.defects)
             counts["judge_fail"] += 1
             counts["regeneration"] += 1
             if span and span.is_recording():
@@ -152,7 +155,7 @@ def synthesize_one_ticker_node(state: WorkflowState) -> Dict[str, Any]:
                 })
 
             regen_system_prompt = SYNTHESIS_SYSTEM_PROMPT + f"\n\nCRITICAL CORRECTION REQUIRED:\nYour previous output was evaluated by a safety guardrail and failed due to the following defects: {', '.join(judge_res.defects)}.\n\nCorrection instructions:\n{judge_res.regenerationInstruction}\n\nStrictly address these defects, ensuring the output is perfectly grounded in the context data and indirect paths match the routing exactly."
-            print(f"  [guardrail] Attempting regeneration for {ticker}...")
+            logger.warning("  [guardrail] Attempting regeneration for %s...", ticker)
             result_regen: SynthesisOut = invoke_with_retry(
                 structured_llm,
                 [SystemMessage(content=regen_system_prompt), HumanMessage(content=user_prompt)],
@@ -178,7 +181,7 @@ def synthesize_one_ticker_node(state: WorkflowState) -> Dict[str, Any]:
                 })
 
             if judge_res_2.passes:
-                print(f"  [guardrail] Regenerated output passed for {ticker}!")
+                logger.info("  [guardrail] Regenerated output passed for %s!", ticker)
                 synthesis_regen["guardrailMetadata"] = {
                     "judgeStatus": "regenerated_passed",
                     "judgeAttempts": 2,
@@ -195,7 +198,7 @@ def synthesize_one_ticker_node(state: WorkflowState) -> Dict[str, Any]:
                     })
                 return {"ticker_synthesis_results": [{"ticker": ticker, "synthesis": synthesis_regen, "l3Counts": counts}]}
 
-            print(f"  [guardrail] Regenerated output failed for {ticker} again. Degrading briefing.")
+            logger.warning("  [guardrail] Regenerated output failed for %s again. Degrading briefing.", ticker)
             counts["degrade"] += 1
             if span and span.is_recording():
                 span.add_event("l3_degraded", {
@@ -211,7 +214,7 @@ def synthesize_one_ticker_node(state: WorkflowState) -> Dict[str, Any]:
             return {"ticker_synthesis_results": [{"ticker": ticker, "synthesis": synthesis, "l3Counts": counts}]}
 
         except Exception as judge_exc:
-            print(f"  [guardrail] Judge execution error for {ticker}: {judge_exc}. Degrading briefing.")
+            logger.exception("  [guardrail] Judge execution error for %s: %s. Degrading briefing.", ticker, judge_exc)
             counts["degrade"] += 1
             if span and span.is_recording():
                 span.add_event("l3_degraded", {
@@ -228,7 +231,7 @@ def synthesize_one_ticker_node(state: WorkflowState) -> Dict[str, Any]:
 
     except Exception as e:
         reason = classify_llm_failure(e, "synthesis model")
-        print(f"Error synthesizing briefing for {ticker}: {e}")
+        logger.exception("Error synthesizing briefing for %s: %s", ticker, e)
         synthesis = {
             "summaryId": f"sum_error_{ticker}",
             "ticker": ticker,
@@ -261,7 +264,7 @@ def synthesize_one_ticker_node(state: WorkflowState) -> Dict[str, Any]:
 
 def collect_ticker_syntheses(state: WorkflowState) -> Dict[str, Any]:
     """Fan-in node: reduce branch results into the existing ticker_syntheses API shape."""
-    print("--- [Node 5c: Collect Ticker Syntheses] ---")
+    logger.info("--- [Node 5c: Collect Ticker Syntheses] ---")
     try:
         from opentelemetry import trace as otel_trace
         span = otel_trace.get_current_span()

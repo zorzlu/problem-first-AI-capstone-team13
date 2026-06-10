@@ -3,7 +3,10 @@ from typing import Any, Dict, List
 
 from langgraph.types import Send
 
+from backend.core.logging import get_logger
 from backend.iterations.contracts import WorkflowState
+
+logger = get_logger(__name__)
 
 def _normalize_timed_facts(facts: List[Any], fallback_ts: str = "") -> List[Dict[str, Any]]:
     """
@@ -22,7 +25,7 @@ def _normalize_timed_facts(facts: List[Any], fallback_ts: str = "") -> List[Dict
 
 def build_ticker_buckets_for_synthesis(state: WorkflowState, restore_ledger: bool, restore_indirect: bool) -> Dict[str, Any]:
     """Build per-ticker synthesis buckets before LangGraph fans out ticker workers."""
-    print(f"--- [Node 5a: Build Ticker Buckets] (restore_ledger={restore_ledger}, restore_indirect={restore_indirect}) ---")
+    logger.info("--- [Node 5a: Build Ticker Buckets] (restore_ledger=%s, restore_indirect=%s) ---", restore_ledger, restore_indirect)
     try:
         from opentelemetry import trace as otel_trace
         span = otel_trace.get_current_span()
@@ -30,7 +33,7 @@ def build_ticker_buckets_for_synthesis(state: WorkflowState, restore_ledger: boo
         span = None
 
     if state.get("llm_failed", False):
-        print("Skipping synthesis fan-out: upstream LLM failure detected (llm_failed=True).")
+        logger.warning("Skipping synthesis fan-out: upstream LLM failure detected (llm_failed=True).")
         watchlist = state.get("watchlist", [])
         reason = state.get("failure_reason") or "The model could not be reached during event extraction."
         halted_syntheses = {}

@@ -18,7 +18,7 @@ logger = get_logger(__name__)
 
 def run_extraction(state: WorkflowState, system_prompt: str, focus_block: str) -> Dict[str, Any]:
     """Extract canonical events from the fetched articles using the given prompt + focus block."""
-    print("--- [Node 2: Canonical Event Extraction] ---")
+    logger.info("--- [Node 2: Canonical Event Extraction] ---")
     try:
         from opentelemetry import trace as otel_trace
         span = otel_trace.get_current_span()
@@ -32,13 +32,13 @@ def run_extraction(state: WorkflowState, system_prompt: str, focus_block: str) -
         span.set_attribute("articles_count", len(articles))
         
     if not articles:
-        print("No articles fetched to extract events from.")
+        logger.info("No articles fetched to extract events from.")
         return {"canonical_events": []}
         
     use_mock = not has_llm_for_step("extraction")
     
     if use_mock:
-        print("No LLM API keys found. Falling back to pre-baked canonical event extraction.")
+        logger.warning("No LLM API keys found. Falling back to pre-baked canonical event extraction.")
         for art in articles:
             art_id = art["articleId"]
             
@@ -70,7 +70,7 @@ def run_extraction(state: WorkflowState, system_prompt: str, focus_block: str) -
             event["publishedAt"] = art.get("publishedAt")
             
             canonical_events.append(event)
-            print(f"Mock Extracted Event: {event['eventSummary']} (Type: {event['eventType']})")
+            logger.info("Mock Extracted Event: %s (Type: %s)", event["eventSummary"], event["eventType"])
             
         if span and span.is_recording():
             span.add_event("events_extracted", {
@@ -122,7 +122,7 @@ RELATED TICKERS IN SOURCE: {', '.join(art.get('relatedTickers', []))}
 \n"""
 
     try:
-        print(f"Calling LLM to extract events from {len(articles)} articles in one batch...")
+        logger.info("Calling LLM to extract events from %d articles in one batch...", len(articles))
         structured_llm = llm.with_structured_output(ExtractionResult)
         result: ExtractionResult = invoke_with_retry(
             structured_llm,
@@ -149,9 +149,9 @@ RELATED TICKERS IN SOURCE: {', '.join(art.get('relatedTickers', []))}
                 event["sourceHeadline"] = art.get("headline")
                 event["publishedAt"] = art.get("publishedAt")
                 canonical_events.append(event)
-                print(f"Extracted Event: {event['eventSummary']} (Type: {event['eventType']})")
+                logger.info("Extracted Event: %s (Type: %s)", event["eventSummary"], event["eventType"])
             else:
-                print(f"Warning: Extracted event references unknown articleId: {art_id}")
+                logger.warning("Extracted event references unknown articleId: %s", art_id)
                 
         if span and span.is_recording():
             span.add_event("events_extracted", {
@@ -161,8 +161,8 @@ RELATED TICKERS IN SOURCE: {', '.join(art.get('relatedTickers', []))}
             
     except Exception as e:
         reason = classify_llm_failure(e, "news-analysis model")
-        print(f"Node 2 event extraction failed: {e}")
-        print("Setting llm_failed=True to halt downstream LLM steps.")
+        logger.exception("Node 2 event extraction failed: %s", e)
+        logger.error("Setting llm_failed=True to halt downstream LLM steps.")
         if span and span.is_recording():
             span.set_attribute("llm_failed", True)
             span.set_attribute("failure_reason", reason)

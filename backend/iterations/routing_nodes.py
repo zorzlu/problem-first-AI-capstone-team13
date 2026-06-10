@@ -1,8 +1,11 @@
 """Candidate routing nodes for iteration workflows."""
 from typing import Any, Dict
 
+from backend.core.logging import get_logger
 from backend.iterations.contracts import WorkflowState
 from backend.graph.graph import route_cross_impact
+
+logger = get_logger(__name__)
 
 def route_events(state: WorkflowState, cross_impact: bool) -> Dict[str, Any]:
     """Route canonical events to watchlist tickers.
@@ -11,7 +14,7 @@ def route_events(state: WorkflowState, cross_impact: bool) -> Dict[str, Any]:
     ``cross_impact=True`` (iteration 3) additionally routes untickered events through the
     exposure graph.
     """
-    print(f"--- [Node 3: Candidate Routing] (cross_impact={cross_impact}) ---")
+    logger.info("--- [Node 3: Candidate Routing] (cross_impact=%s) ---", cross_impact)
     try:
         from opentelemetry import trace as otel_trace
         span = otel_trace.get_current_span()
@@ -50,7 +53,7 @@ def route_events(state: WorkflowState, cross_impact: bool) -> Dict[str, Any]:
                     "reasonForRouting": reason
                 }
                 routed_candidates.append(candidate)
-                print(f"Direct Route: {event['eventSummary']} -> {ticker}")
+                logger.info("Direct Route: %s -> %s", event["eventSummary"], ticker)
                 
                 if span and span.is_recording():
                     span.add_event("event_routing", {
@@ -69,7 +72,10 @@ def route_events(state: WorkflowState, cross_impact: bool) -> Dict[str, Any]:
                 is_dup = any(c["ticker"] == ic["ticker"] and c["eventId"] == ic["eventId"] for c in routed_candidates)
                 if not is_dup:
                     routed_candidates.append(ic)
-                    print(f"Cross-Impact Route: {event['eventSummary']} -> {ic['ticker']} via {ic['impactPath']} (Conf: {ic['pathConfidence']})")
+                    logger.info(
+                        "Cross-Impact Route: %s -> %s via %s (Conf: %s)",
+                        event["eventSummary"], ic["ticker"], ic["impactPath"], ic["pathConfidence"],
+                    )
                     
                     if span and span.is_recording():
                         span.add_event("event_routing", {
