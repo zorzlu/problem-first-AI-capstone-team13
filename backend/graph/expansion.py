@@ -18,9 +18,12 @@ from pydantic import BaseModel, Field
 from langchain_core.messages import HumanMessage, SystemMessage
 
 from backend.core.llm import get_graph_expansion_llm, has_llm_for_step
+from backend.core.logging import get_logger
 from backend.iterations.common import invoke_with_retry
 from backend.graph.graph import get_graph, add_graph_node, add_graph_edge, graph_lock
 from backend.storage.persistence import save_graph
+
+logger = get_logger(__name__)
 
 
 # Node/edge vocabulary mirrors backend/seed_data.py so generated graph elements are
@@ -140,7 +143,7 @@ def fetch_finnhub_peers(symbol: str) -> List[str]:
     """Queries Finnhub for the peers of a given stock symbol."""
     from backend.core.config import FINNHUB_API_KEY
     if not FINNHUB_API_KEY:
-        print(f"[graph_expansion] Warning: FINNHUB_API_KEY not set. Cannot fetch peers for {symbol}.")
+        logger.warning("FINNHUB_API_KEY not set. Cannot fetch peers for %s.", symbol)
         return []
     
     url = "https://finnhub.io/api/v1/stock/peers"
@@ -157,9 +160,9 @@ def fetch_finnhub_peers(symbol: str) -> List[str]:
                 # Filter out the symbol itself or invalid entries
                 return [p for p in peers if p and p != symbol]
         else:
-            print(f"[graph_expansion] Finnhub Peers API error ({response.status_code}): {response.text}")
+            logger.error("Finnhub Peers API error (%s): %s", response.status_code, response.text)
     except Exception as e:
-        print(f"[graph_expansion] Error fetching peers for {symbol}: {e}")
+        logger.error("Error fetching peers for %s: %s", symbol, e)
     return []
 
 
@@ -322,7 +325,7 @@ def expand_graph_for_ticker(ticker: str, force: bool = False) -> Dict[str, Any]:
 
     # Automatic expansion is once-per-ticker. A manual re-run (force=True) bypasses this.
     if already_present and not force:
-        print(f"[graph_expansion] {ticker} already in graph — skipping expansion.")
+        logger.info("%s already in graph — skipping expansion.", ticker)
         return {"ticker": ticker, "addedNodes": 0, "addedEdges": 0, "usedLLM": False, "skipped": True}
 
     # Demo/mock mode: no LLM available. Register the bare ticker node so cross-impact
@@ -335,10 +338,10 @@ def expand_graph_for_ticker(ticker: str, force: bool = False) -> Dict[str, Any]:
             matched_node["nodeType"] = "ticker"
             add_graph_node(matched_node)
             added_nodes = 0
-            print(f"[graph_expansion] No LLM keys configured — upgraded existing node to ticker for {ticker}.")
+            logger.warning("No LLM keys configured — upgraded existing node to ticker for %s.", ticker)
         else:
             add_graph_node(bare_node)
-            print(f"[graph_expansion] No LLM keys configured — added bare node for {ticker} only.")
+            logger.warning("No LLM keys configured — added bare node for %s only.", ticker)
         return {"ticker": ticker, "addedNodes": added_nodes, "addedEdges": 0, "usedLLM": False}
 
     # --- LLM-driven expansion ---
@@ -426,13 +429,16 @@ def expand_graph_for_ticker(ticker: str, force: bool = False) -> Dict[str, Any]:
         node_type = n.get("nodeType")
         name = n.get("name")
         if not node_id or not name or node_type not in VALID_NODE_TYPES:
-            print(f"[graph_expansion] Dropping invalid node: {n}")
+            logger.warning("Dropping invalid node: %s", n)
             continue
 
         # Check if node matches any reference node
         matched_node = find_matching_node(n, reference_nodes)
         if matched_node:
-            print(f"[graph_expansion] Resolving duplicate node: {node_id} ({name}) -> {matched_node['nodeId']} ({matched_node['name']})")
+            logger.info(
+                "Resolving duplicate node: %s (%s) -> %s (%s)",
+                node_id, name, matched_node["nodeId"], matched_node["name"],
+            )
             resolved_node_ids[node_id] = matched_node["nodeId"]
             
             # Enrich existing node in-place
@@ -496,10 +502,10 @@ def expand_graph_for_ticker(ticker: str, force: bool = False) -> Dict[str, Any]:
             continue
 
         if from_id not in valid_ids or to_id not in valid_ids:
-            print(f"[graph_expansion] Dropping edge with unknown/unresolved endpoint: {from_id} -> {to_id}")
+            logger.warning("Dropping edge with unknown/unresolved endpoint: %s -> %s", from_id, to_id)
             continue
         if edge_type not in VALID_EDGE_TYPES:
-            print(f"[graph_expansion] Dropping edge with invalid edgeType '{edge_type}': {from_id} -> {to_id}")
+            logger.warning("Dropping edge with invalid edgeType '%s': %s -> %s", edge_type, from_id, to_id)
             continue
         try:
             confidence = float(e.get("confidence", 0.7))
@@ -523,7 +529,7 @@ def expand_graph_for_ticker(ticker: str, force: bool = False) -> Dict[str, Any]:
     for e in clean_edges:
         add_graph_edge(e)
 
-    print(f"[graph_expansion] {ticker}: merged {len(clean_nodes)} nodes, {len(clean_edges)} edges via LLM.")
+    logger.info("%s: merged %d nodes, %d edges via LLM.", ticker, len(clean_nodes), len(clean_edges))
     return {
         "ticker": ticker,
         "addedNodes": len(clean_nodes),
@@ -571,7 +577,7 @@ def process_ticker_expansion(ticker: str, force: bool = False) -> Dict[str, Any]
             )
             return summary
         except Exception as e:
-            print(f"[graph_expansion] Background expansion failed for {tk}: {e}")
+            logger.exception("Background expansion failed for %s: %s", tk, e)
             _set_status(tk, "failed", error=str(e))
             return {"ticker": tk, "status": "failed", "error": str(e)}
 

@@ -10,6 +10,10 @@ from copy import deepcopy
 from pathlib import Path
 from typing import Any, Dict, Optional, Tuple
 
+from backend.core.logging import get_logger
+
+logger = get_logger(__name__)
+
 
 STATE_DIR = str(Path(__file__).resolve().parents[1] / "state")
 SETTINGS_FILE = os.path.join(STATE_DIR, "settings.json")
@@ -83,7 +87,7 @@ def get_runtime_settings() -> Dict[str, Any]:
         with open(SETTINGS_FILE, "r", encoding="utf-8") as f:
             return _sanitize_settings(_unwrap_settings(json.load(f)))
     except Exception as e:
-        print(f"[settings] Failed to load runtime settings, using defaults: {e}")
+        logger.warning("Failed to load runtime settings, using defaults: %s", e)
         return deepcopy(DEFAULT_SETTINGS)
 
 

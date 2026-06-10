@@ -1,6 +1,6 @@
 """Backend logging setup.
 
-All app modules log through here instead of print() so output carries levels and
+All app modules log through here instead of bare prints so output carries levels and
 timestamps, respects LOG_LEVEL, and plays nicely with uvicorn's own logging.
 CLI tools (backend/scripts) and tests keep printing — their output IS the product.
 """

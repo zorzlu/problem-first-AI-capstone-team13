@@ -7,6 +7,10 @@ from datetime import datetime, timezone, timedelta
 
 import numpy as np
 
+from backend.core.logging import get_logger
+
+logger = get_logger(__name__)
+
 # In-memory storage for the Catalyst Ledger entries partitioned by iteration
 _ledger_store: Dict[int, List[Dict[str, Any]]] = {
     1: [],
@@ -66,7 +70,7 @@ def _get_embedding_model():
             from fastembed import TextEmbedding
             _embedding_model = TextEmbedding(model_name=_EMBEDDING_MODEL_NAME, cache_dir=_EMBEDDING_CACHE_DIR)
         except Exception as e:
-            print(f"Local embedding model unavailable ({e}). Falling back to lexical similarity.")
+            logger.warning("Local embedding model unavailable (%s). Falling back to lexical similarity.", e)
             _embedding_unavailable = True
             return None
     return _embedding_model

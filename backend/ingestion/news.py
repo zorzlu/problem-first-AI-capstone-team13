@@ -5,7 +5,10 @@ from datetime import datetime, timedelta, timezone
 from typing import List, Dict, Any, Optional
 from urllib.parse import urlparse
 from backend.core.config import FINNHUB_API_KEY, CURRENTS_API_KEY, FRESHNESS_LOOKBACK_MINUTES
+from backend.core.logging import get_logger
 from backend.ingestion.scenarios import SCENARIOS
+
+logger = get_logger(__name__)
 
 def normalize_iso_timestamp(ts: str) -> datetime:
     """Helper to convert various timestamp formats to timezone-aware datetime."""
@@ -24,7 +27,7 @@ def fetch_finnhub_direct_news(symbol: str, minutes_lookback: int = 10) -> List[D
     API: GET /company-news?symbol={symbol}&from={date}&to={date}
     """
     if not FINNHUB_API_KEY:
-        print(f"Warning: Finnhub API Key not set. Direct news fetch for {symbol} skipped.")
+        logger.warning("Finnhub API Key not set. Direct news fetch for %s skipped.", symbol)
         return []
 
     now = datetime.now(timezone.utc)
@@ -42,7 +45,7 @@ def fetch_finnhub_direct_news(symbol: str, minutes_lookback: int = 10) -> List[D
     try:
         response = requests.get(url, params=params, timeout=10)
         if response.status_code != 200:
-            print(f"Finnhub API error ({response.status_code}): {response.text}")
+            logger.error("Finnhub API error (%s): %s", response.status_code, response.text)
             return []
         
         articles = response.json()
@@ -63,7 +66,7 @@ def fetch_finnhub_direct_news(symbol: str, minutes_lookback: int = 10) -> List[D
             })
         return normalized
     except Exception as e:
-        print(f"Error fetching Finnhub news for {symbol}: {e}")
+        logger.error("Error fetching Finnhub news for %s: %s", symbol, e)
         return []
 
 def _fetch_currents_search(
@@ -74,7 +77,7 @@ def _fetch_currents_search(
     query_label: str = "currents",
 ) -> List[Dict[str, Any]]:
     if not CURRENTS_API_KEY:
-        print(f"Warning: Currents API Key not set. {query_label} fetch skipped.")
+        logger.warning("Currents API Key not set. %s fetch skipped.", query_label)
         return []
 
     if not keywords:
@@ -82,7 +85,7 @@ def _fetch_currents_search(
 
     keywords = [k for k in keywords if k]
     query_str = " OR ".join(keywords)
-    print(f"Currents {query_label} query terms ({len(keywords)}): {keywords}")
+    logger.info("Currents %s query terms (%d): %s", query_label, len(keywords), keywords)
     url = f"https://api.currentsapi.services/v1/search"
     params = {
         "keywords": query_str,
@@ -93,7 +96,7 @@ def _fetch_currents_search(
     try:
         response = requests.get(url, params=params, timeout=10)
         if response.status_code != 200:
-            print(f"Currents API error ({response.status_code}): {response.text}")
+            logger.error("Currents API error (%s): %s", response.status_code, response.text)
             return []
         
         data = response.json()
@@ -114,7 +117,7 @@ def _fetch_currents_search(
             })
         return normalized
     except Exception as e:
-        print(f"Error fetching Currents {query_label} news: {e}")
+        logger.error("Error fetching Currents %s news: %s", query_label, e)
         return []
 
 
@@ -185,7 +188,7 @@ def fetch_currents_company_news(symbols: List[str]) -> List[Dict[str, Any]]:
     """Run targeted Currents searches per company/ticker in parallel."""
     if not CURRENTS_API_KEY or not symbols:
         if not CURRENTS_API_KEY:
-            print("Warning: Currents API Key not set. Company news fetch skipped.")
+            logger.warning("Currents API Key not set. Company news fetch skipped.")
         return []
 
     ordered_symbols = []
@@ -327,15 +330,18 @@ def get_news_payload(
         all_articles = list(scenario["articles"])
         # Use simulated 'now' for filtering
         reference_time = normalize_iso_timestamp(simulated_now_str)
-        print(f"Replay Scenario Active: {scenario['name']}")
-        print(f"Simulating time: {reference_time.isoformat()}")
+        logger.info("Replay Scenario Active: %s", scenario["name"])
+        logger.info("Simulating time: %s", reference_time.isoformat())
     else:
         # Fetch Live
         tickers_to_query = list(symbol_watchlist)
         if extra_tickers:
             tickers_to_query.extend([t for t in extra_tickers if t not in tickers_to_query])
             
-        print(f"Live Ingestion Active. Watchlist Tickers: {symbol_watchlist}. Extra Tickers: {extra_tickers}. Cross-impact Keywords: {cross_impact_keywords}")
+        logger.info(
+            "Live Ingestion Active. Watchlist Tickers: %s. Extra Tickers: %s. Cross-impact Keywords: %s",
+            symbol_watchlist, extra_tickers, cross_impact_keywords,
+        )
         # Fetch Finnhub direct company-news for all target tickers
         for symbol in tickers_to_query:
             all_articles.extend(fetch_finnhub_direct_news(symbol))
@@ -354,7 +360,10 @@ def get_news_payload(
     filtered_articles = []
     seen_urls = set()
     
-    print(f"Filtering articles using FRESHNESS_LOOKBACK_MINUTES = {FRESHNESS_LOOKBACK_MINUTES} mins (relative to reference time: {reference_time.isoformat()})")
+    logger.info(
+        "Filtering articles using FRESHNESS_LOOKBACK_MINUTES = %s mins (relative to reference time: %s)",
+        FRESHNESS_LOOKBACK_MINUTES, reference_time.isoformat(),
+    )
     for art in all_articles:
         url = art.get("url", "")
         if not url or url in seen_urls:
@@ -365,7 +374,10 @@ def get_news_payload(
         delta_mins = time_diff_sec / 60.0
         
         # Log each article details to show user time delta
-        print(f"  - Article: '{art.get('headline')[:60]}...' | Published: {art.get('publishedAt')} | Delta: {delta_mins:.2f} mins")
+        logger.info(
+            "  - Article: '%s...' | Published: %s | Delta: %.2f mins",
+            art.get("headline")[:60], art.get("publishedAt"), delta_mins,
+        )
         
         # Freshness filter:
         # - not in the future (relative to reference_time)
@@ -374,13 +386,13 @@ def get_news_payload(
         
         relevance_ok = scenario_id != "live" or is_relevant_live_article(art, cross_impact_keywords)
         if is_fresh and not relevance_ok:
-            print("    skipped: failed live relevance gate")
+            logger.warning("    skipped: failed live relevance gate")
 
         if (is_fresh and relevance_ok) or scenario_id != "live":
             filtered_articles.append(art)
             seen_urls.add(url)
             
-    print(f"Ingested {len(all_articles)} articles, {len(filtered_articles)} passed freshness filter.")
+    logger.info("Ingested %d articles, %d passed freshness filter.", len(all_articles), len(filtered_articles))
     
     return {
         "articles": filtered_articles,

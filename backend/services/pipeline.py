@@ -5,7 +5,6 @@ LangGraph invocation, ledger rollback, response shaping, and Phoenix span metada
 belong here so `main.py` stays readable.
 """
 import json
-import traceback
 from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeoutError
 from datetime import datetime, timezone
 from threading import RLock
@@ -14,9 +13,12 @@ from typing import Any, Callable, Dict, List
 from fastapi import HTTPException
 
 from backend.core.config import PIPELINE_RUN_TIMEOUT_SECONDS
+from backend.core.logging import get_logger
 from backend.iterations import get_workflow
 from backend.memory import restore_ledger_store, snapshot_ledger_store
 from backend.api.schemas import RunRequest
+
+logger = get_logger(__name__)
 
 
 RunResultsStore = Dict[int, Dict[str, Any]]
@@ -152,11 +154,11 @@ def _execute_locked_run(
 
     def run_with_ledger() -> Dict[str, Any]:
         try:
-            print(f"Executing LangGraph workflow for Iteration {req.iteration} (Scenario: {req.scenario_id})...")
+            logger.info("Executing LangGraph workflow for Iteration %s (Scenario: %s)...", req.iteration, req.scenario_id)
             final_state = _invoke_with_timeout(req.iteration, initial_state)
 
             if final_state.get("llm_failed", False):
-                print("Pipeline had LLM failure - rolling back ledger to pre-run snapshot.")
+                logger.error("Pipeline had LLM failure - rolling back ledger to pre-run snapshot.")
                 restore_ledger_store(ledger_snapshot)
 
             response_data = _response_from_state(req, final_state)
@@ -164,9 +166,10 @@ def _execute_locked_run(
             save_run_results(run_results)
             return response_data
         except FuturesTimeoutError:
-            print(
-                f"Pipeline run exceeded {PIPELINE_RUN_TIMEOUT_SECONDS}s - rolling back ledger and "
-                "freeing the request (background thread is abandoned)."
+            logger.error(
+                "Pipeline run exceeded %ss - rolling back ledger and "
+                "freeing the request (background thread is abandoned).",
+                PIPELINE_RUN_TIMEOUT_SECONDS,
             )
             restore_ledger_store(ledger_snapshot)
             raise HTTPException(
@@ -177,9 +180,8 @@ def _execute_locked_run(
                 ),
             )
         except Exception as e:
-            print(f"Error running pipeline: {e} - rolling back ledger.")
+            logger.exception("Error running pipeline: %s - rolling back ledger.", e)
             restore_ledger_store(ledger_snapshot)
-            traceback.print_exc()
             raise HTTPException(status_code=500, detail=f"Pipeline execution failed: {str(e)}")
 
     tracer, span_kind_attr, input_attr, output_attr = _trace_metadata()

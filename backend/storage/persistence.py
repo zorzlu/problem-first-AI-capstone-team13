@@ -7,6 +7,10 @@ import os
 from pathlib import Path
 from typing import Any, Dict, List
 
+from backend.core.logging import get_logger
+
+logger = get_logger(__name__)
+
 # State directory sits at backend/state/. This module lives in backend/storage/.
 _STATE_DIR = str(Path(__file__).resolve().parents[1] / "state")
 _WATCHLIST_FILE = os.path.join(_STATE_DIR, "watchlist.json")
@@ -56,10 +60,10 @@ def load_watchlist(default: List[str]) -> List[str]:
         with open(_WATCHLIST_FILE, "r", encoding="utf-8") as f:
             data = _unwrap_state(json.load(f), "watchlist")
         tickers = data.get("tickers", default)
-        print(f"[persistence] Loaded watchlist from disk: {tickers}")
+        logger.info("Loaded watchlist from disk: %s", tickers)
         return tickers
     except Exception as e:
-        print(f"[persistence] Failed to load watchlist, using default: {e}")
+        logger.warning("Failed to load watchlist, using default: %s", e)
         return list(default)
 
 
@@ -69,7 +73,7 @@ def save_watchlist(tickers: List[str]):
     try:
         _write_json(_WATCHLIST_FILE, _wrap_state("watchlist", {"tickers": tickers}))
     except Exception as e:
-        print(f"[persistence] Failed to save watchlist: {e}")
+        logger.error("Failed to save watchlist: %s", e)
 
 
 # ---------------------------------------------------------------------------
@@ -86,10 +90,10 @@ def load_graph(default: Dict[str, Any]) -> Dict[str, Any]:
             data = _unwrap_state(json.load(f), "graph")
         node_count = len(data.get("nodes", []))
         edge_count = len(data.get("edges", []))
-        print(f"[persistence] Loaded graph from disk: {node_count} nodes, {edge_count} edges")
+        logger.info("Loaded graph from disk: %d nodes, %d edges", node_count, edge_count)
         return data
     except Exception as e:
-        print(f"[persistence] Failed to load graph, using seed default: {e}")
+        logger.warning("Failed to load graph, using seed default: %s", e)
         return default
 
 
@@ -99,7 +103,7 @@ def save_graph(graph: Dict[str, Any]):
     try:
         _write_json(_GRAPH_FILE, _wrap_state("graph", graph))
     except Exception as e:
-        print(f"[persistence] Failed to save graph: {e}")
+        logger.error("Failed to save graph: %s", e)
 
 
 # ---------------------------------------------------------------------------
@@ -117,10 +121,10 @@ def load_run_results() -> Dict[str, Any]:
     try:
         with open(_RUN_RESULTS_FILE, "r", encoding="utf-8") as f:
             data = _unwrap_state(json.load(f), "run_results")
-        print(f"[persistence] Loaded latest run results from disk")
+        logger.info("Loaded latest run results from disk")
         return data
     except Exception as e:
-        print(f"[persistence] Failed to load run results: {e}")
+        logger.warning("Failed to load run results: %s", e)
         return {}
 
 
@@ -130,4 +134,4 @@ def save_run_results(results: Dict[str, Any]):
     try:
         _write_json(_RUN_RESULTS_FILE, _wrap_state("run_results", results))
     except Exception as e:
-        print(f"[persistence] Failed to save run results: {e}")
+        logger.error("Failed to save run results: %s", e)

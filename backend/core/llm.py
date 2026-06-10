@@ -18,7 +18,10 @@ from backend.core.config import (
     OPENAI_COMPATIBLE_API_KEY,
     OPENAI_COMPATIBLE_BASE_URL,
 )
+from backend.core.logging import get_logger
 from backend.services.runtime_settings import get_runtime_llm_override
+
+logger = get_logger(__name__)
 
 Provider = Literal["openai", "gemini", "anthropic", "openai_compatible", "local"]
 
@@ -234,9 +237,9 @@ def resolve_model_spec(step: str) -> ModelSpec:
     for spec in candidates:
         if _is_provider_configured(spec.provider):
             if len(candidates) > 1 and spec != candidates[0]:
-                print(
-                    f"Warning: {candidates[0].provider} is not configured for step '{step}'. "
-                    f"Falling back to {spec.provider}:{spec.model_id}."
+                logger.warning(
+                    "%s is not configured for step '%s'. Falling back to %s:%s.",
+                    candidates[0].provider, step, spec.provider, spec.model_id,
                 )
             return spec
 
