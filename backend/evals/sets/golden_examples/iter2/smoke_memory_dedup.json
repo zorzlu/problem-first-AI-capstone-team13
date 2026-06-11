@@ -3,7 +3,7 @@
   "caseId": "iter2_smoke_memory_dedup",
   "suite": "iter2_memory",
   "iteration": 2,
-  "description": "Smoke test: same event ingested twice should be marked duplicate on second step",
+  "description": "Smoke test: syndicated wire copy of the same story (same headline, near-identical summary) ingested in a second step must be suppressed as duplicate",
   "tags": ["smoke", "memory", "dedup"],
   "watchlist": ["AAPL"],
   "simulatedNow": "2026-05-28T17:25:00Z",
@@ -33,26 +33,28 @@
       }
     },
     {
-      "stepId": "step_2_similar_article",
+      "stepId": "step_2_syndicated_duplicate",
       "articles": [
         {
           "articleId": "art_002",
           "sourceApi": "mock",
           "sourceName": "Bloomberg",
           "url": "https://example.com/aapl-supply-news",
-          "headline": "Apple Chip Supply Shortage",
-          "summary": "Apple faces semiconductor supply shortages from TSMC affecting iPhone production.",
+          "headline": "Apple Faces Supply Chain Constraints",
+          "summary": "Apple announced supply chain challenges that may affect Q3 production this year.",
           "publishedAt": "2026-05-28T11:00:00Z",
           "relatedTickers": ["AAPL"]
         }
       ],
       "expected": {
         "ledgerDecisions": {
-          "art_002": "new"
+          "art_002": "duplicate"
         },
-        "duplicateCountsAtLeast": {},
+        "duplicateCountsAtLeast": {
+          "AAPL": 1
+        },
         "ledgerLiveEntriesEquals": {},
-        "expectedNewFactSubstrings": ["semiconductor"]
+        "expectedNewFactSubstrings": []
       }
     }
   ],

@@ -18,29 +18,29 @@ logger = get_logger(__name__)
 def run_golden_case(
     case: GoldenCase,
     simulated_now_override: Optional[str] = None,
-) -> Dict[str, Any]:
-    """Execute a golden test case and return the final workflow state.
+) -> List[Dict[str, Any]]:
+    """Execute a golden test case and return the final workflow state of every step.
+
+    The ledger is cleared once before the case and NOT between steps, so multi-step
+    cases (iter2 memory progression) exercise dedup/update behavior across steps.
 
     Args:
         case: Golden case specification with articles, watchlist, and expected outputs.
         simulated_now_override: Override the case's simulatedNow timestamp (for testing).
 
     Returns:
-        Final workflow state from invoke(). Caller can check state against expected values.
+        List of per-step final workflow states, in step order. Evaluators assert each
+        step's expected block against the matching state.
     """
     logger.info("Running golden case %s (suite: %s)", case.caseId, case.suite)
 
-    # Save current ledger and graph state for rollback.
+    # Save current ledger state for rollback.
     ledger_snapshot = snapshot_ledger_store()
-    original_graph_state = None
 
     try:
         # Set up graph fixture.
-        if case.graphFixture == "seed":
-            reset_graph()
-        elif isinstance(case.graphFixture, dict):
+        if isinstance(case.graphFixture, dict):
             # Custom subgraph for this case (e.g., for iter3 false-butterfly negatives).
-            original_graph_state = None  # Track original state if we save it
             set_graph(case.graphFixture.get("nodes", []), case.graphFixture.get("edges", []))
         else:
             reset_graph()
@@ -49,7 +49,7 @@ def run_golden_case(
         clear_ledger()
 
         # Run steps in order (usually 1 for iter1/iter3, N for iter2 memory progression).
-        final_state = None
+        step_states: List[Dict[str, Any]] = []
         for step in case.steps:
             logger.debug("Running step %s of case %s", step.stepId, case.caseId)
 
@@ -75,8 +75,9 @@ def run_golden_case(
 
             if final_state.get("llm_failed"):
                 logger.warning("LLM failure in step %s", step.stepId)
+            step_states.append(final_state)
 
-        return final_state or {}
+        return step_states
 
     finally:
         # Always restore ledger and graph on exit.

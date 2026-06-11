@@ -5,7 +5,7 @@
   "iteration": 3,
   "description": "Smoke test: event affecting supply chain should route cross-impact to dependent companies",
   "tags": ["smoke", "cross_impact"],
-  "watchlist": ["AAPL", "TSMC", "MSFT"],
+  "watchlist": ["AAPL", "TSM", "MSFT"],
   "simulatedNow": "2026-05-28T17:25:00Z",
   "graphFixture": "seed",
   "steps": [
@@ -27,11 +27,16 @@
         "indirectRoutes": [
           {
             "ticker": "AAPL",
-            "pathMustIncludeAnyOf": [],
-            "minPathConfidence": 0.0
+            "pathMustIncludeAnyOf": ["TSMC"],
+            "minPathConfidence": 0.4
           }
         ],
-        "forbiddenIndirectRoutes": [],
+        "forbiddenIndirectRoutes": [
+          {
+            "ticker": "MSFT",
+            "reason": "MSFT has no supply-chain dependency on TSMC wafer output in the seed graph; routing it would be a false butterfly"
+          }
+        ],
         "pathValidity": true
       }
     }

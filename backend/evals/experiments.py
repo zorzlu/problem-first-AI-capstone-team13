@@ -74,7 +74,13 @@ def run_experiment(
     elif suite_name == "iter3_cross_impact":
         evaluator = evaluate_iter3_cross_impact
     elif suite_name == "judge_calibration":
-        evaluator = evaluate_judge_calibration
+        # Judge calibration does not run the pipeline: it feeds a stored synthesis to
+        # the L3 judge and compares the verdict to human labels. That path needs LLM
+        # keys and a judge-invocation harness that is not built yet.
+        raise NotImplementedError(
+            "judge_calibration requires the judge-invocation harness (deferred until "
+            "the golden dataset repo with human labels is available)"
+        )
     else:
         raise ValueError(f"Unknown suite: {suite_name}")
 
@@ -82,10 +88,10 @@ def run_experiment(
     for case in cases:
         try:
             logger.info("Running case: %s", case.caseId)
-            final_state = run_golden_case(case)
+            step_states = run_golden_case(case)
 
             # Evaluate outputs.
-            passed, metrics, errors = evaluator(case, final_state)
+            passed, metrics, errors = evaluator(case, step_states)
 
             if passed:
                 passed_count += 1
