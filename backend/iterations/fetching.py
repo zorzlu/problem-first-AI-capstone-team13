@@ -15,6 +15,9 @@ def run_fetch_and_filter(state: WorkflowState, expand: bool) -> Dict[str, Any]:
 
     ``expand=True`` widens the search using exposure-graph-derived cross-impact
     keywords and peer tickers; otherwise only the watchlist is queried.
+
+    Golden-case eval harness can pre-inject articles into state["articles"]; if present,
+    they are used directly instead of calling the news API.
     """
     logger.info("--- [Node 1: Fetching & Filtering News] (expand=%s) ---", expand)
     try:
@@ -30,6 +33,21 @@ def run_fetch_and_filter(state: WorkflowState, expand: bool) -> Dict[str, Any]:
     if span and span.is_recording():
         span.set_attribute("watchlist", watchlist)
         span.set_attribute("scenario_id", scenario_id)
+
+    # Golden-case eval hook: if articles are pre-injected, use them directly.
+    preinjected_articles = state.get("articles")
+    if preinjected_articles:
+        logger.info("Using pre-injected articles for golden-case eval (count: %s)", len(preinjected_articles))
+        return {
+            "articles": preinjected_articles,
+            "ingestion_metadata": {
+                "total_ingested": len(preinjected_articles),
+                "passed_freshness": len(preinjected_articles),
+                "source": "golden_case_eval",
+            },
+            "expansion_keywords": [],
+            "expansion_tickers": [],
+        }
 
     cross_impact_keywords = []
     extra_tickers = []

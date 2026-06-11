@@ -1,0 +1,45 @@
+{
+  "schemaVersion": 1,
+  "caseId": "iter1_smoke_basic_extraction",
+  "suite": "iter1_direct",
+  "iteration": 1,
+  "description": "Basic smoke test: simple earnings news routes to mentioned ticker",
+  "tags": ["smoke", "basic"],
+  "watchlist": ["AAPL", "MSFT"],
+  "simulatedNow": "2026-05-28T17:25:00Z",
+  "graphFixture": "seed",
+  "steps": [
+    {
+      "stepId": "step_1",
+      "articles": [
+        {
+          "articleId": "art_001",
+          "sourceApi": "mock",
+          "sourceName": "Financial Times",
+          "url": "https://example.com/aapl-earnings",
+          "headline": "Apple Q2 Earnings Beat Expectations",
+          "summary": "Apple reported Q2 earnings of $6.05 per share, beating analyst expectations of $5.80. Revenue grew 5% year-over-year to $94.7 billion.",
+          "publishedAt": "2026-05-28T16:00:00Z",
+          "relatedTickers": ["AAPL"],
+          "queryTerms": ["AAPL"]
+        }
+      ],
+      "expected": {
+        "events": [
+          {
+            "eventType": "earnings",
+            "eventSummary": "Apple reported Q2 earnings beat with revenue growth"
+          }
+        ],
+        "directRoutes": ["AAPL"],
+        "forbiddenRoutes": [],
+        "requiredSyntheses": ["AAPL"]
+      }
+    }
+  ],
+  "labels": {
+    "annotator": "smoke_test",
+    "labeledAt": "2026-06-11T00:00:00Z",
+    "notes": "Minimal test to verify basic extraction and routing pipeline"
+  }
+}
