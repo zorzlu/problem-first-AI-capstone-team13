@@ -55,7 +55,7 @@
       "name": "Tracing: Arize Phoenix Server",
       "type": "node-terminal",
       "request": "launch",
-      "command": "./backend/.venv/Scripts/python.exe ./backend/scripts/run_phoenix.py serve",
+      "command": "uv run --project backend --frozen python -m phoenix.server.main serve",
       "cwd": "${workspaceFolder}",
       "env": {
         "PYTHONIOENCODING": "utf-8",

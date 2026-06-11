@@ -4,10 +4,14 @@
     {
       "label": "Setup Local Environment",
       "type": "shell",
-      "command": "powershell",
-      "args": ["-ExecutionPolicy", "Bypass", "-File", "scripts/setup.ps1"],
+      "command": "bash",
+      "args": ["scripts/setup.sh"],
       "options": {
         "cwd": "${workspaceFolder}"
+      },
+      "windows": {
+        "command": "powershell",
+        "args": ["-ExecutionPolicy", "Bypass", "-File", "scripts/setup.ps1"]
       },
       "problemMatcher": []
     },
