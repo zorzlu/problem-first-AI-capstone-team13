@@ -1,0 +1,64 @@
+{
+  "schemaVersion": 1,
+  "caseId": "iter2_smoke_memory_dedup",
+  "suite": "iter2_memory",
+  "iteration": 2,
+  "description": "Smoke test: same event ingested twice should be marked duplicate on second step",
+  "tags": ["smoke", "memory", "dedup"],
+  "watchlist": ["AAPL"],
+  "simulatedNow": "2026-05-28T17:25:00Z",
+  "graphFixture": "seed",
+  "steps": [
+    {
+      "stepId": "step_1_first_article",
+      "articles": [
+        {
+          "articleId": "art_001",
+          "sourceApi": "mock",
+          "sourceName": "Reuters",
+          "url": "https://example.com/aapl-supply-issue",
+          "headline": "Apple Faces Supply Chain Constraints",
+          "summary": "Apple announced supply chain challenges that may affect Q3 production.",
+          "publishedAt": "2026-05-28T10:00:00Z",
+          "relatedTickers": ["AAPL"]
+        }
+      ],
+      "expected": {
+        "ledgerDecisions": {
+          "art_001": "new"
+        },
+        "duplicateCountsAtLeast": {},
+        "ledgerLiveEntriesEquals": {},
+        "expectedNewFactSubstrings": ["supply chain"]
+      }
+    },
+    {
+      "stepId": "step_2_similar_article",
+      "articles": [
+        {
+          "articleId": "art_002",
+          "sourceApi": "mock",
+          "sourceName": "Bloomberg",
+          "url": "https://example.com/aapl-supply-news",
+          "headline": "Apple Chip Supply Shortage",
+          "summary": "Apple faces semiconductor supply shortages from TSMC affecting iPhone production.",
+          "publishedAt": "2026-05-28T11:00:00Z",
+          "relatedTickers": ["AAPL"]
+        }
+      ],
+      "expected": {
+        "ledgerDecisions": {
+          "art_002": "new"
+        },
+        "duplicateCountsAtLeast": {},
+        "ledgerLiveEntriesEquals": {},
+        "expectedNewFactSubstrings": ["semiconductor"]
+      }
+    }
+  ],
+  "labels": {
+    "annotator": "smoke_test",
+    "labeledAt": "2026-06-11T00:00:00Z",
+    "notes": "Tests basic memory and dedup across two steps"
+  }
+}
