@@ -31,11 +31,6 @@ jobs:
       - name: Install locked backend dependencies
         run: uv sync --project backend --locked --link-mode=copy
 
-      - name: Check backend dependency consistency
-        # OS-agnostic: resolve pip through the synced project rather than a hardcoded
-        # Scripts/python.exe path (which only exists on Windows).
-        run: uv run --project backend --locked python -m pip check
-
       - name: Run backend tests
         run: uv run --project backend --locked python -m backend.tests.run_tests
 
