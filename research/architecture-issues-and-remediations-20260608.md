@@ -45,6 +45,25 @@
 - I-10 (stretch) make pyright a hard gate once the LangChain-stub findings are resolved.
 - I-11 (stretch) full line-audit of `README.md` / `capstone-system-design.md`.
 
+## Implementation status — 2026-06-10 (P0–P2 remediation pass)
+
+- **Routing quality:** false-butterfly cross-impact routing fixed (broad-geo anchor demotion,
+  term-match word coverage, competitor-hop containment) with a deterministic eval gate
+  (`python -m backend.evals.routing_quality`, 8 golden cases) and operator overrides
+  (`backend/graph/overrides.py`, `/api/graph/routing-overrides`).
+- **P0:** state JSONs untracked from git (I-01 follow-through — the one-time `git rm --cached`
+  is done); `invoke_with_retry` backs off `RETRY_BACKOFF_SECONDS` (default 2s) before its single
+  retry; `init_phoenix` logs ImportError vs runtime failure distinctly (dead `phoenix_session`
+  global removed); extraction timestamp parsing catches only expected exception types.
+- **P1:** `print()` calls across app modules migrated to `backend/core/logging`
+  (`configure_logging` + `get_logger`; `LOG_LEVEL` env var). CLI tools, tests, and eval-report
+  output keep printing by design.
+- **P2:** graph-expansion queue dedup; embedding-fallback reason + per-run dedup engine surfaced
+  (`/api/memory-status`, run results); frontend `RunResult` raw arrays typed
+  (`RawArticle`/`CanonicalEvent`/`RoutedCandidate`); deterministic eval suites added to CI
+  (ubuntu job: `replay_scenarios`, `memory_and_routing_paths`, `routing_quality`); historical
+  research journals moved to `research/archive/`.
+
 ---
 
 ## Priority order (do these first)

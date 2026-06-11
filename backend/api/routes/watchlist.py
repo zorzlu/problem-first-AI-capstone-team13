@@ -1,7 +1,7 @@
 from fastapi import APIRouter, BackgroundTasks
 
 from backend.api.schemas import WatchlistRequest
-from backend.graph.expansion import get_expansion_status, mark_pending, process_ticker_expansion
+from backend.graph.expansion import get_expansion_status, mark_pending, process_ticker_expansion, should_schedule
 from backend.services.app_state import app_state
 from backend.storage.persistence import save_watchlist
 
@@ -26,6 +26,8 @@ def update_watchlist(req: WatchlistRequest, background_tasks: BackgroundTasks):
     save_watchlist(app_state.watchlist)
 
     for ticker in new_tickers:
+        if not should_schedule(ticker):
+            continue
         mark_pending(ticker)
         background_tasks.add_task(process_ticker_expansion, ticker, False)
 

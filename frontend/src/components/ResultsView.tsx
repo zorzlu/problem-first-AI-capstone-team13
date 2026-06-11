@@ -40,7 +40,7 @@ export function ResultsView({
 
   const getEventTimestamp = (sourceArticleIds: string[]): string | null => {
     if (!runResult || !runResult.rawArticles || !sourceArticleIds || sourceArticleIds.length === 0) return null;
-    const art = runResult.rawArticles.find((a: any) => sourceArticleIds.includes(a.articleId));
+    const art = runResult.rawArticles.find((a) => sourceArticleIds.includes(a.articleId));
     return art?.publishedAt || null;
   };
 

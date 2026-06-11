@@ -39,6 +39,16 @@ jobs:
       - name: Run backend tests
         run: uv run --project backend --locked python -m backend.tests.run_tests
 
+      - name: Run deterministic eval suites
+        # With no API keys present the pipeline uses deterministic mock extraction, so
+        # these are true regression gates on routing/ledger/workflow wiring (runners
+        # exit non-zero on failure). Ubuntu only: the suites are OS-independent.
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          uv run --project backend --locked python -m backend.evals.runner --eval-set replay_scenarios --no-phoenix
+          uv run --project backend --locked python -m backend.evals.runner --eval-set memory_and_routing_paths --no-phoenix
+          uv run --project backend --locked python -m backend.evals.routing_quality
+
   frontend:
     name: Frontend (${{ matrix.os }})
     runs-on: ${{ matrix.os }}

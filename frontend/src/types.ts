@@ -54,6 +54,61 @@ export interface TickerBucket {
   suppressedDuplicateCount: number;
 }
 
+// Mirrors the article dicts built in backend/ingestion/news.py.
+export interface RawArticle {
+  articleId: string;
+  sourceApi: string;
+  sourceName: string;
+  url: string;
+  headline: string;
+  summary: string;
+  publishedAt: string;
+  relatedTickers?: string[];
+  queryTerms?: string[];
+}
+
+// Mirrors CanonicalEventOut (backend/iterations/contracts.py) plus the enrichment
+// fields attached in backend/iterations/extraction.py after articleId reconciliation.
+export interface CanonicalEvent {
+  eventId: string;
+  articleId: string;
+  eventType: string;
+  eventSummary: string;
+  hardFacts: string[];
+  mentionedTickers: string[];
+  entities: string[];
+  eventTags: string[];
+  regions: string[];
+  sectors: string[];
+  commodities: string[];
+  technologyThemes: string[];
+  possibleDirectionalPressure: 'positive' | 'negative' | 'mixed' | 'unclear';
+  uncertaintyNotes: string[];
+  evidence: string[];
+  sourceArticleIds: string[];
+  relatedTickers: string[];
+  sourceUrl?: string;
+  sourceName?: string;
+  sourceHeadline?: string;
+  publishedAt?: string;
+}
+
+// Mirrors the candidate dicts built in backend/iterations/routing_nodes.py (direct)
+// and backend/graph/graph.py route_cross_impact (indirect).
+export interface RoutedCandidate {
+  candidateId: string;
+  ticker: string;
+  relationshipType: 'direct' | 'indirect';
+  eventId: string;
+  impactPath: string[];
+  pathConfidence: number;
+  pathStrength?: 'strong' | 'weak';
+  reasonForRouting: string;
+  // Stamped by the ledger memory step (iterations 2/3).
+  catalystId?: string;
+  ledgerDecision?: 'new' | 'update' | 'duplicate';
+}
+
 export interface RunResult {
   runId: string;
   iteration: number;
@@ -63,9 +118,9 @@ export interface RunResult {
   routedCount: number;
   duplicateCounts: Record<string, number>;
   tickerSyntheses: Record<string, TickerSummary>;
-  rawArticles: any[];
-  canonicalEvents: any[];
-  routedCandidates: any[];
+  rawArticles: RawArticle[];
+  canonicalEvents: CanonicalEvent[];
+  routedCandidates: RoutedCandidate[];
   tickerBuckets: Record<string, TickerBucket>;
 }
 

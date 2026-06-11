@@ -135,6 +135,17 @@ def mark_pending(ticker: str) -> None:
     _set_status(ticker.strip().upper(), "pending")
 
 
+def should_schedule(ticker: str) -> bool:
+    """True unless an expansion for this ticker is already queued or running.
+
+    Rapid watchlist POSTs (UI double-submit, retries) would otherwise enqueue the same
+    ticker several times, each spawning an LLM expansion task.
+    """
+    with _status_lock:
+        current = _expansion_status.get(ticker.strip().upper())
+        return not current or current.get("status") not in {"pending", "running"}
+
+
 def _today() -> str:
     return datetime.now(timezone.utc).strftime("%Y-%m-%d")
 

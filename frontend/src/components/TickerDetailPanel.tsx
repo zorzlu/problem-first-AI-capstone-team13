@@ -52,19 +52,19 @@ export function TickerDetailPanel({
 
   const getEventDecision = (eventId: string): string => {
     if (!runResult || !runResult.routedCandidates) return 'new';
-    const cand = runResult.routedCandidates.find((c: any) => c.eventId === eventId && c.ticker === activeTicker);
+    const cand = runResult.routedCandidates.find((c) => c.eventId === eventId && c.ticker === activeTicker);
     return cand?.ledgerDecision || 'new';
   };
 
   const getEventCatalystId = (eventId: string): string | null => {
     if (!runResult || !runResult.routedCandidates) return null;
-    const cand = runResult.routedCandidates.find((c: any) => c.eventId === eventId && c.ticker === activeTicker);
+    const cand = runResult.routedCandidates.find((c) => c.eventId === eventId && c.ticker === activeTicker);
     return cand?.catalystId || null;
   };
 
   const getEventTimestamp = (sourceArticleIds: string[]): string | null => {
     if (!runResult || !runResult.rawArticles || !sourceArticleIds || sourceArticleIds.length === 0) return null;
-    const art = runResult.rawArticles.find((a: any) => sourceArticleIds.includes(a.articleId));
+    const art = runResult.rawArticles.find((a) => sourceArticleIds.includes(a.articleId));
     return art?.publishedAt || null;
   };
 

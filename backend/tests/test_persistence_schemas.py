@@ -51,6 +51,32 @@ class TestPersistenceAndApiSchemas(unittest.TestCase):
                 persistence._STATE_DIR = old_dir
                 persistence._WATCHLIST_FILE = old_file
 
+    def test_persistence_future_schema_version_falls_back_to_default(self):
+        # A state file written by a NEWER app version must not be silently misread:
+        # _unwrap_state raises, and the loader degrades to the default with a warning.
+        from backend.storage import persistence
+
+        with tempfile.TemporaryDirectory() as tmp:
+            old_dir = persistence._STATE_DIR
+            old_file = persistence._WATCHLIST_FILE
+            try:
+                persistence._STATE_DIR = tmp
+                persistence._WATCHLIST_FILE = f"{tmp}/watchlist.json"
+                with open(persistence._WATCHLIST_FILE, "w", encoding="utf-8") as f:
+                    json.dump(
+                        {"schemaVersion": 99, "kind": "watchlist", "data": {"tickers": ["AAPL"]}},
+                        f,
+                    )
+
+                with self.assertRaises(ValueError):
+                    persistence._unwrap_state(
+                        {"schemaVersion": 99, "kind": "watchlist", "data": {}}, "watchlist"
+                    )
+                self.assertEqual(persistence.load_watchlist(default=["MSFT"]), ["MSFT"])
+            finally:
+                persistence._STATE_DIR = old_dir
+                persistence._WATCHLIST_FILE = old_file
+
     def test_graph_mutation_schema_rejects_invalid_edge(self):
         from pydantic import ValidationError
 
