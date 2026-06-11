@@ -60,6 +60,7 @@ def get_memory_status():
         "embeddingCacheDir": memory_module.EMBEDDING_CACHE_DIR,
         "embeddingLocation": "localhost",
         "isFallbackActive": not embedding_active,
+        "embeddingFallbackReason": memory_module.get_embedding_unavailable_reason(),
         "similarityThreshold": 0.75,
         "jaccardFactThreshold": 0.6,
         "ledgerTotalEntries": counts["total"],

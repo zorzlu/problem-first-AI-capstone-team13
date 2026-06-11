@@ -45,6 +45,7 @@ _EMBEDDING_CACHE_DIR = os.getenv("EMBEDDING_CACHE_DIR", _DEFAULT_EMBEDDING_CACHE
 # Lazily-initialised singleton + availability flag.
 _embedding_model = None
 _embedding_unavailable = False
+_embedding_unavailable_reason: Optional[str] = None
 
 # Small English stopword set so common filler words don't inflate similarity scores.
 _STOPWORDS = frozenset({
@@ -62,7 +63,7 @@ def _tokenize(text: str) -> List[str]:
 
 def _get_embedding_model():
     """Lazily load the local fastembed model. Returns None if unavailable."""
-    global _embedding_model, _embedding_unavailable
+    global _embedding_model, _embedding_unavailable, _embedding_unavailable_reason
     if _embedding_unavailable:
         return None
     if _embedding_model is None:
@@ -70,8 +71,10 @@ def _get_embedding_model():
             from fastembed import TextEmbedding
             _embedding_model = TextEmbedding(model_name=_EMBEDDING_MODEL_NAME, cache_dir=_EMBEDDING_CACHE_DIR)
         except Exception as e:
-            logger.warning("Local embedding model unavailable (%s). Falling back to lexical similarity.", e)
+            reason = f"{type(e).__name__}: {str(e)}"
+            logger.warning("Local embedding model unavailable (%s). Falling back to lexical similarity.", reason)
             _embedding_unavailable = True
+            _embedding_unavailable_reason = reason
             return None
     return _embedding_model
 
@@ -79,6 +82,13 @@ def _get_embedding_model():
 def is_embedding_active() -> bool:
     """Whether the local neural embedding engine is loaded and in use (vs lexical fallback)."""
     return _get_embedding_model() is not None
+
+
+def get_embedding_unavailable_reason() -> Optional[str]:
+    """Return the reason embedding is unavailable, or None if embedding is active or not yet attempted."""
+    # Trigger lazy load if not yet attempted, so the reason is populated
+    _get_embedding_model()
+    return _embedding_unavailable_reason
 
 
 # Public, read-only views of the embedding config so callers (e.g. the status route) do

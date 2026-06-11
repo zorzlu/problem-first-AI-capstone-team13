@@ -15,7 +15,7 @@ from fastapi import HTTPException
 from backend.core.config import PIPELINE_RUN_TIMEOUT_SECONDS
 from backend.core.logging import get_logger
 from backend.iterations import get_workflow
-from backend.memory import restore_ledger_store, snapshot_ledger_store
+from backend.memory import restore_ledger_store, snapshot_ledger_store, is_embedding_active
 from backend.api.schemas import RunRequest
 
 logger = get_logger(__name__)
@@ -54,6 +54,7 @@ def _initial_state(req: RunRequest, watchlist: List[str]) -> Dict[str, Any]:
 
 
 def _response_from_state(req: RunRequest, final_state: Dict[str, Any]) -> Dict[str, Any]:
+    dedup_engine = "local_fastembed" if is_embedding_active() else "local_lexical"
     return {
         "runId": f"run_{req.scenario_id}_{int(_datetime_now().timestamp())}",
         "iteration": final_state["iteration"],
@@ -64,6 +65,7 @@ def _response_from_state(req: RunRequest, final_state: Dict[str, Any]) -> Dict[s
         "duplicateCounts": final_state.get("duplicate_counts", {}),
         "tickerSyntheses": final_state.get("ticker_syntheses", {}),
         "llmFailed": final_state.get("llm_failed", False),
+        "dedupEngine": dedup_engine,
         "rawArticles": final_state.get("articles", []),
         "canonicalEvents": final_state.get("canonical_events", []),
         "routedCandidates": final_state.get("routed_candidates", []),
