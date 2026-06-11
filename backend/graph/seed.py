@@ -153,6 +153,47 @@ EXPOSURE_GRAPH = {
             "aliases": ["freight rates", "shipping costs", "fuel surcharge"],
             "queryTerms": ["freight rates", "shipping cost", "jet fuel", "oil price"]
         },
+        # Macro / Consumer Factors
+        {
+            "nodeId": "macro_consumer_spending",
+            "nodeType": "macro_factor",
+            "name": "US Consumer Spending",
+            "aliases": ["consumer spending", "consumer discretionary", "consumer demand", "US consumer"],
+            "queryTerms": ["consumer spending", "consumer demand", "consumer discretionary", "retail spending"]
+        },
+        # Geopolitical Risk Factors
+        {
+            "nodeId": "risk_geopolitical_china",
+            "nodeType": "risk_factor",
+            "name": "US-China Geopolitical Tensions",
+            "aliases": ["trade war", "tariff", "China trade", "US-China trade", "geopolitical risk"],
+            "queryTerms": ["trade war", "tariff", "China trade war", "US-China tensions", "geopolitical tension"]
+        },
+        # Additional Consumer/Retail Tickers
+        {
+            "nodeId": "ticker_MCD",
+            "nodeType": "ticker",
+            "name": "McDonald's Corporation",
+            "ticker": "MCD",
+            "aliases": ["McDonald's", "McDonalds"],
+            "queryTerms": ["McDonald's", "MCD", "fast food"]
+        },
+        {
+            "nodeId": "ticker_SBUX",
+            "nodeType": "ticker",
+            "name": "Starbucks Corporation",
+            "ticker": "SBUX",
+            "aliases": ["Starbucks", "SBUX"],
+            "queryTerms": ["Starbucks", "SBUX", "coffee"]
+        },
+        # China Region Node
+        {
+            "nodeId": "region_China",
+            "nodeType": "region",
+            "name": "China",
+            "aliases": ["PRC", "Chinese", "mainland China"],
+            "queryTerms": ["China", "PRC", "Chinese market", "China operations"]
+        },
         # Tech Companies
         {
             "nodeId": "company_Anthropic",
@@ -439,6 +480,89 @@ EXPOSURE_GRAPH = {
             "sourceType": "manual_seed",
             "notes": "Delta Air Lines is sensitive to global oil shocks and rising jet fuel costs resulting from logistics and supply chain strains.",
             "lastReviewedAt": "2026-05-28"
+        },
+        # Consumer Spending Macro Factor Edges
+        {
+            "fromNodeId": "macro_consumer_spending",
+            "toNodeId": "ticker_MCD",
+            "edgeType": "macro_sensitivity",
+            "strength": "high",
+            "confidence": 0.85,
+            "sourceType": "manual_seed",
+            "notes": "McDonald's revenue is tightly coupled to consumer spending, especially on discretionary fast-food purchases.",
+            "lastReviewedAt": "2026-06-11"
+        },
+        {
+            "fromNodeId": "macro_consumer_spending",
+            "toNodeId": "ticker_SBUX",
+            "edgeType": "macro_sensitivity",
+            "strength": "high",
+            "confidence": 0.85,
+            "sourceType": "manual_seed",
+            "notes": "Starbucks is highly sensitive to consumer discretionary spending trends.",
+            "lastReviewedAt": "2026-06-11"
+        },
+        {
+            "fromNodeId": "macro_consumer_spending",
+            "toNodeId": "ticker_AAPL",
+            "edgeType": "macro_sensitivity",
+            "strength": "medium",
+            "confidence": 0.70,
+            "sourceType": "manual_seed",
+            "notes": "Apple consumer electronics sales are correlated with broader consumer spending health.",
+            "lastReviewedAt": "2026-06-11"
+        },
+        # Geopolitical Tensions (China) Edges
+        {
+            "fromNodeId": "risk_geopolitical_china",
+            "toNodeId": "ticker_NVDA",
+            "edgeType": "macro_sensitivity",
+            "strength": "high",
+            "confidence": 0.85,
+            "sourceType": "manual_seed",
+            "notes": "US-China tensions directly impact Nvidia through export controls on advanced AI accelerators to China.",
+            "lastReviewedAt": "2026-06-11"
+        },
+        {
+            "fromNodeId": "risk_geopolitical_china",
+            "toNodeId": "ticker_AAPL",
+            "edgeType": "macro_sensitivity",
+            "strength": "high",
+            "confidence": 0.85,
+            "sourceType": "manual_seed",
+            "notes": "Apple is exposed to US-China tensions through manufacturing in China and supply chain disruptions.",
+            "lastReviewedAt": "2026-06-11"
+        },
+        {
+            "fromNodeId": "risk_geopolitical_china",
+            "toNodeId": "ticker_MCD",
+            "edgeType": "macro_sensitivity",
+            "strength": "low",
+            "confidence": 0.40,
+            "sourceType": "manual_seed",
+            "notes": "McDonald's has operations in China; geopolitical tensions can impact franchises and supply chains.",
+            "lastReviewedAt": "2026-06-11"
+        },
+        # China Region Exposure Edges
+        {
+            "fromNodeId": "region_China",
+            "toNodeId": "ticker_NVDA",
+            "edgeType": "regional_exposure",
+            "strength": "high",
+            "confidence": 0.80,
+            "sourceType": "manual_seed",
+            "notes": "Nvidia has significant revenue exposure to Chinese customers and AI infrastructure buildouts.",
+            "lastReviewedAt": "2026-06-11"
+        },
+        {
+            "fromNodeId": "region_China",
+            "toNodeId": "ticker_AAPL",
+            "edgeType": "regional_exposure",
+            "strength": "high",
+            "confidence": 0.90,
+            "sourceType": "manual_seed",
+            "notes": "Apple manufactures extensively in China and has substantial Chinese consumer market exposure.",
+            "lastReviewedAt": "2026-06-11"
         }
     ]
 }

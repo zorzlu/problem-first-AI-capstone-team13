@@ -401,6 +401,7 @@ class TestWorkflow(unittest.TestCase):
         self.assertEqual(msft_events[0]["impactPath"], ["MSFT"])
         self.assertIn("Directly tagged", msft_events[0]["reasonForRouting"])
 
+    @patch('backend.core.llm.OPENAI_API_KEY', 'sk-test')
     @patch('backend.iterations.extraction.get_extraction_llm')
     @patch('backend.iterations.guardrails.get_judge_llm')
     @patch('backend.iterations.synthesis.get_synthesis_llm')

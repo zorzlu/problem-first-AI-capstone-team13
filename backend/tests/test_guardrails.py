@@ -29,6 +29,13 @@ class TestGuardrails(unittest.TestCase):
     def setUp(self):
         clear_ledger()
         self.watchlist = ["AAPL", "MSFT", "NVDA", "TSM", "DAL"]
+        # Patch GEMINI_API_KEY so has_llm_for_step("judge") returns True.
+        # The judge primary is Gemini; this allows the mocked get_judge_llm to fire.
+        self._gemini_patcher = patch('backend.core.llm.GEMINI_API_KEY', 'test-key-sentinel')
+        self._gemini_patcher.start()
+
+    def tearDown(self):
+        self._gemini_patcher.stop()
 
     def mock_structured(self, schema):
         runner = MagicMock()

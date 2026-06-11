@@ -34,27 +34,27 @@ class TestGraphExpansion(unittest.TestCase):
     def test_expand_new_ticker_no_llm(self, _mock_has_llm):
         from backend.graph.expansion import expand_graph_for_ticker
         from backend.graph.graph import get_graph, add_graph_node
-        
-        # Add SBUX as a private_company first
+
+        # Add GOOGL as a private_company first (not in seed graph, so we test normalization)
         add_graph_node({
-            "nodeId": "private_company_SBUX",
+            "nodeId": "private_company_GOOGL",
             "nodeType": "private_company",
-            "name": "Starbucks Corporation",
-            "ticker": "SBUX",
-            "aliases": ["Starbucks"],
-            "queryTerms": ["Starbucks", "SBUX"]
+            "name": "Alphabet Inc.",
+            "ticker": "GOOGL",
+            "aliases": ["Google", "Alphabet"],
+            "queryTerms": ["Google", "Alphabet", "GOOGL"]
         })
-        
+
         # Public companies with tickers are normalized at insertion time.
         nodes = get_graph()["nodes"]
-        sbux_nodes = [n for n in nodes if n.get("ticker") == "SBUX"]
-        self.assertEqual(len(sbux_nodes), 1)
-        self.assertEqual(sbux_nodes[0]["nodeType"], "ticker")
-        
-        # Run expansion for SBUX. Since it is now a clean ticker root, automatic
+        googl_nodes = [n for n in nodes if n.get("ticker") == "GOOGL"]
+        self.assertEqual(len(googl_nodes), 1)
+        self.assertEqual(googl_nodes[0]["nodeType"], "ticker")
+
+        # Run expansion for GOOGL. Since it is now a clean ticker root, automatic
         # expansion without force can skip it.
-        res = expand_graph_for_ticker("SBUX", force=False)
-        self.assertEqual(res["ticker"], "SBUX")
+        res = expand_graph_for_ticker("GOOGL", force=False)
+        self.assertEqual(res["ticker"], "GOOGL")
         self.assertTrue(res.get("skipped", False))
         
     def test_normalize_graph_repairs_ticker_roots_and_public_company_nodes(self):

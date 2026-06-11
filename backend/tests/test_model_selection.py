@@ -38,7 +38,7 @@ class TestModelSelection(unittest.TestCase):
             spec = llm.resolve_model_spec("extraction")
 
         self.assertEqual(spec.provider, "openai")
-        self.assertEqual(spec.model_id, "gpt-4.1-nano")
+        self.assertEqual(spec.model_id, "gpt-5-mini")
 
     def test_graph_expansion_falls_back_to_gemini_with_gemini_model(self):
         from backend.core import llm
